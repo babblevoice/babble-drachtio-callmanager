@@ -43,6 +43,7 @@ const r = new Registrar( {
 
 const cm = new CallManager( {
   "srf": srf,
+  "registrar": r,
   "passwordLookup": passwordLookup
 } )
 
@@ -52,6 +53,17 @@ cm.on( "call", async ( c ) => {
 ```
 
 When call manager presents a new call it passes a call object as part of it. The original req and res from Drachtio are members of this object. The call object also has the following methods.
+
+CallManager takes an options object as part of its construction. srf and a passwordLookup function are required. Options for codecs and transcoding can also be supplied:
+
+```json
+{
+  "srf": srf,
+  "passwordLookup": passwordLookup,
+  "preferedcodecs": "pcmu pcma 2833",
+  "transcode": true
+}
+```
 
 
 ## auth
