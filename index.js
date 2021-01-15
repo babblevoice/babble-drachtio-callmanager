@@ -24,6 +24,8 @@ class call {
 
   constructor( req, res ) {
     this.uuid = uuidv4()
+
+    consolelog( this, "new call" )
     this.ringing = false
     this.established = false
     this.canceled = false
@@ -93,14 +95,14 @@ class call {
           switch( err.status ) {
             case 486: /* Busy here */
             case 487: /* Request terminated */
-              console.log( "uac cancel")
-              newcall._onhangup()
+              consolelog( this, "uac cancel")
+              newcall._onhangup( "wire" )
               break
             default:
-              console.log( "unknown sip response: " + err.status )
+              consolelog( this, "unknown sip response: " + err.status )
           }
         } else {
-          console.log( err )
+          consolelog( this, err )
         }
       } )
 
@@ -110,7 +112,7 @@ class call {
   /* Called from newuac when we receive a 180 */
   _onring() {
     if( undefined !== this.parent ) {
-      console.log( this.uuid + ": received 180 ringing" )
+      consolelog( this, "received 180 ringing" )
       this.parent.ring()
     }
   }
@@ -130,42 +132,57 @@ class call {
 
     /* We now have 2 calls, we may need to answer the parent */
     /* We have this.dialog (srf dialog object) and this.sdp.remote (sdp object) */
-    let remotecodecs = this.sdp.remote.intersection( singleton.options.preferedcodecs )
-    console.log( this.uuid + ": remote codecs: " + remotecodecs )
+    if( this.parent.established ) {
+      this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
+      consolelog( this, "remote codec chosen: " + this.selectedcodec )
 
-    rtp.channel( this.sdp.remote.select( remotecodecs ) )
-      .then( ch => {
-        this.chs.push( ch )
+      rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
+        .then( ch => {
+          this.chs.push( ch )
 
-        this.sdp.local = sdpgen.create().addcodecs( remotecodecs ).setchannel( ch )
-
-        this.dialog.ack( this.sdp.local.toString() )
-          .then( ( dlg ) => {
-            this.dialog = dlg
-            this.addevents( this.dialog )
-          } )
-
-        if( this.canceled ) {
-          this.newuacreject()
-          this._onhangup()
-          return
-        }
-
-        if( this.parent.established ) {
-          this.audio.mix( this.parent.audio )
-          this.newuacresolve( this )
-        } else {
-          this.parent.answer()
-            .then( () => {
+          this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
+          this.dialog.ack( this.sdp.local.toString() )
+            .then( ( dlg ) => {
+              this.dialog = dlg
+              this.addevents( this.dialog )
               this.audio.mix( this.parent.audio )
               this.newuacresolve( this )
+
             } )
-            .catch( () => {
-              this.hangup()
-              this.newuacreject( this )
-            } )
-        }
-      } )
+
+          if( this.canceled ) {
+            this.newuacreject()
+            return
+          }
+        } )
+      } else {
+        /* parent is not established */
+        let remotecodecs = this.sdp.remote.intersection( singleton.options.preferedcodecs )
+        consolelog( this, "remote codecs (late negotiation) chosen: " + remotecodecs )
+
+        this.parent.answer( { "preferedcodecs": remotecodecs } )
+          .then( () => {
+
+            this.selectedcodec = this.parent.selectedcodec
+
+            this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec )
+            rtp.channel( this.sdp.local )
+              .then( ch => {
+                this.sdp.local.setchannel( ch )
+                this.chs.push( ch )
+                this.dialog.ack( this.sdp.local.toString() )
+                  .then( ( dlg ) => {
+                    this.dialog = dlg
+                    this.addevents( this.dialog )
+                    this.audio.mix( this.parent.audio )
+                    this.newuacresolve( this )
+                  } )
+              } )
+          } )
+          .catch( () => {
+            this.newuacreject( this )
+          } )
+      }
   }
 
   get destination() {
@@ -196,15 +213,15 @@ class call {
 
     /* are we waiting for an auth ?*/
     if( undefined !== this.authresolve ) {
-      console.log( "checking auth" )
+      consolelog( this, "checking auth" )
       let authed = false
       singleton.authdigest( this.req, this.res, () => { authed = true } )
 
       if( authed ) {
-        console.log( "resolving auth" )
+        consolelog( this, "resolving auth" )
         this.authresolve()
 
-        console.log( "cleaning up auth" )
+        consolelog( this, "cleaning up auth" )
         delete this.authresolve
         delete this.authreject
       }
@@ -212,8 +229,12 @@ class call {
   }
 
   _oncanceled( req, res ) {
-    console.log( "client canceled" )
+    consolelog( "client canceled" )
     this.canceled = true
+
+    if( 1 === this.children.length && false !== this.parent ) {
+      this.parent.hangup()
+    }
 
     this.children.forEach( ( child ) => {
       child.hangup()
@@ -235,7 +256,7 @@ class call {
     answer - returns promise.
     Answer the call and store a channel which can be used.
   */
-  answer() {
+  answer( options = {} ) {
     var p = new Promise( ( resolve, reject ) => {
       this.answerresolve = resolve
       this.answerreject = reject
@@ -247,15 +268,23 @@ class call {
     }
 
     this.sdp.remote = sdpgen.create( this.req.msg.body )
-    let remotecodecs = this.sdp.remote.intersection( singleton.options.preferedcodecs )
-    console.log( this.uuid + ": answer - remote codecs: " + remotecodecs )
 
-    rtp.channel( this.sdp.remote.select( remotecodecs ) )
+    if( undefined !== options.preferedcodecs ) {
+      this.selectedcodec = this.sdp.remote.intersection( options.preferedcodecs, true )
+      if( false === this.selectedcodec ) {
+        this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
+      }
+    } else {
+      this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
+    }
+
+    consolelog( this, "answer call with codec " + this.selectedcodec )
+
+    rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
       .then( ch => {
 
         this.chs.push( ch )
-
-        this.sdp.local = sdpgen.create().addcodecs( remotecodecs ).setchannel( ch )
+        this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
 
         if( this.canceled ) {
           this.answerreject()
@@ -282,8 +311,8 @@ class call {
 
   addevents( dialog ) {
     dialog.on( "destroy", ( req ) => {
-      console.log( this.uuid + ": we received destroy on the wire" )
-      this._onhangup()
+      if( this.destroyed ) return
+      this._onhangup( "wire" )
     } )
 
     dialog.on( "hold", ( req ) => {
@@ -317,8 +346,10 @@ class call {
   }
 
   /* When our dialog has confirmed we have hung up */
-  _onhangup() {
-    console.log( this.uuid + ": on hangup" )
+  _onhangup( src = "us" ) {
+
+    if( this.destroyed ) return
+    consolelog( this, "on hangup from " + src )
 
     this.established = false
     this.destroyed = true
@@ -342,20 +373,28 @@ class call {
     } )
   }
 
-  hangup() {
+  hangup( reason ) {
 
     if( this.destroyed ) {
       return
     }
 
-    console.log( this.uuid + ": hanging up call by request" )
+    if( undefined === reason ) {
+      reason = hangup_codes.NORMAL_CLEARING
+    }
+    /* If the call doesn't indicate a valid reason, then indicate ERROR */
+    else if( undefined === hangup_codes[ reason ] ) {
+      reason = hangup_codes.SERVER_ERROR
+    }
+
+    consolelog( this, "hanging up call by request with the reason " + reason.reason + ", SIP: " + reason.sip )
 
     if( this.established ) {
       this.dialog.destroy()
     } else if( "uac" === this.type ) {
       this.req.cancel()
     } else {
-      this.res.send( 486 )
+      this.res.send( reason.sip )
     }
 
     this._onhangup()
@@ -376,6 +415,29 @@ class call {
       destination = destination + "@" + this.req.authorization.realm
     }
   }
+
+function consolelog( c, data ) {
+  if( singleton.options.debug ) {
+    console.log( c.uuid + ": " + data )
+  }
+}
+
+/*
+Not fully complete - but covers all we need.
+*/
+const hangup_codes = {
+  UNALLOCATED_NUMBER: { "reason": "UNALLOCATED_NUMBER", "sip": 404 },
+  USER_BUSY: { "reason": "USER_BUSY", "sip": 406 },
+  NO_USER_RESPONSE: { "reason": "NO_USER_RESPONSE", "sip": 408 }, /* Timeout */
+  NO_ANSWER: { "reason": "NO_ANSWER", "sip": 480 }, /* Temporarily Unavailable */
+  LOOP_DETECTED: { "reason": "LOOP_DETECTED", "sip": 482 },
+  INVALID_NUMBER_FORMAT: { "reason": "INVALID_NUMBER_FORMAT", "sip": 484 },
+  NORMAL_CLEARING: { "reason": "NORMAL_CLEARING", "sip": 487 },
+  INCOMPATIBLE_DESTINATION: { "reason": "INCOMPATIBLE_DESTINATION", "sip": 488 },
+  SERVER_ERROR: { "reason": "SERVER_ERROR", "sip": 500 },
+  FACILITY_REJECTED: { "reason": "FACILITY_REJECTED", "sip": 501 },
+  DESTINATION_OUT_OF_ORDER: { "reason": "DESTINATION_OUT_OF_ORDER", "sip": 502 },
+  CALL_REJECTED: { "reason": "CALL_REJECTED", "sip": 603 }
 }
 
 var singleton
@@ -385,7 +447,8 @@ class callmanager {
 
     this.options = {
       "preferedcodecs": "pcmu pcma 2833",
-      "transcode": true
+      "transcode": true,
+      "debug": false
     }
 
     this.options = { ...this.options, ...options }
@@ -405,6 +468,10 @@ class callmanager {
 
   on( event, cb ) {
     this.em.on( event, cb )
+  }
+
+  get hangup_codes() {
+    return hangup_codes
   }
 
   oninvite( req, res, next ) {
