@@ -153,6 +153,10 @@ class call {
           this.channels.push( ch )
 
           this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
+          if( true === singleton.options.rfc2833 ) {
+            this.sdp.local.addcodecs( "2833" )
+          }
+
           this.dialog.ack( this.sdp.local.toString() )
             .then( ( dlg ) => {
               this.dialog = dlg
@@ -185,6 +189,11 @@ class call {
               .then( ch => {
                 this.sdp.local.setchannel( ch )
                 this.channels.push( ch )
+
+                if( true === singleton.options.rfc2833 ) {
+                  this.sdp.local.addcodecs( "2833" )
+                }
+
                 this.dialog.ack( this.sdp.local.toString() )
                   .then( ( dlg ) => {
                     this.dialog = dlg
@@ -327,6 +336,10 @@ class call {
         if( this.canceled ) {
           this.answerreject()
           return
+        }
+
+        if( true === singleton.options.rfc2833 ) {
+          this.sdp.local.addcodecs( "2833" )
         }
 
         singleton.options.srf.createUAS( this.req, this.res, {
@@ -499,10 +512,11 @@ class callmanager {
     singleton = this
 
     this.options = {
-      "preferedcodecs": "pcmu pcma 2833",
+      "preferedcodecs": "pcmu pcma",
       "transcode": true,
       "debug": false,
-      "uactimeout": 30000
+      "uactimeout": 30000,
+      "rfc2833": true
     }
 
     this.options = { ...this.options, ...options }
