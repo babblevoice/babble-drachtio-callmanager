@@ -92,15 +92,13 @@ class call {
       .catch( ( err ) => {
 
         if ( undefined !== err.status ) {
-          switch( err.status ) {
-            case 486: /* Busy here */
-            case 487: /* Request terminated */
-              consolelog( this, "uac cancel")
-              newcall._onhangup( "wire" )
-              break
-            default:
-              consolelog( this, "unknown sip response: " + err.status )
+          let reason = hangup_codes.REQUEST_TERMINATED
+          if( 486 === err.status ) {
+            reason = hangup_codes.USER_BUSY
           }
+
+          newcall._onhangup( "wire", reason )
+          newcall.newuacreject()
         } else {
           consolelog( this, err )
         }
@@ -111,7 +109,7 @@ class call {
 
   /* Called from newuac when we receive a 180 */
   _onring() {
-    if( undefined !== this.parent ) {
+    if( false !== this.parent ) {
       consolelog( this, "received 180 ringing" )
       this.parent.ring()
     }
@@ -232,7 +230,7 @@ class call {
     consolelog( "client canceled" )
     this.canceled = true
 
-    if( 1 === this.children.length && false !== this.parent ) {
+    if( false !== this.parent && 1 === this.parent.children.length ) {
       this.parent.hangup()
     }
 
@@ -249,7 +247,7 @@ class call {
   }
 
   busy() {
-    this.res.send( 486 )
+    this.hangup( hangup_codes.USER_BUSY )
   }
 
   /*
@@ -346,7 +344,7 @@ class call {
   }
 
   /* When our dialog has confirmed we have hung up */
-  _onhangup( src = "us" ) {
+  _onhangup( src = "us", reason ) {
 
     if( this.destroyed ) return
     consolelog( this, "on hangup from " + src )
@@ -364,12 +362,12 @@ class call {
       }
     }
 
-    if( 1 === this.children.length && false !== this.parent ) {
-      this.parent.hangup()
+    if( false !== this.parent && 1 === this.parent.children.length ) {
+      this.parent.hangup( reason )
     }
 
     this.children.forEach( ( child ) => {
-      child.hangup()
+      child.hangup( reason )
     } )
   }
 
@@ -397,7 +395,7 @@ class call {
       this.res.send( reason.sip )
     }
 
-    this._onhangup()
+    this._onhangup( reason )
   }
 
   /*
@@ -416,6 +414,8 @@ class call {
     }
   }
 
+}
+
 function consolelog( c, data ) {
   if( singleton.options.debug ) {
     console.log( c.uuid + ": " + data )
@@ -432,7 +432,9 @@ const hangup_codes = {
   NO_ANSWER: { "reason": "NO_ANSWER", "sip": 480 }, /* Temporarily Unavailable */
   LOOP_DETECTED: { "reason": "LOOP_DETECTED", "sip": 482 },
   INVALID_NUMBER_FORMAT: { "reason": "INVALID_NUMBER_FORMAT", "sip": 484 },
+  USER_BUSY: { "reason": "USER_BUSY", "sip": 486 },
   NORMAL_CLEARING: { "reason": "NORMAL_CLEARING", "sip": 487 },
+  REQUEST_TERMINATED: { "reason": "REQUEST_TERMINATED", "sip": 487 },
   INCOMPATIBLE_DESTINATION: { "reason": "INCOMPATIBLE_DESTINATION", "sip": 488 },
   SERVER_ERROR: { "reason": "SERVER_ERROR", "sip": 500 },
   FACILITY_REJECTED: { "reason": "FACILITY_REJECTED", "sip": 501 },
