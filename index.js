@@ -364,7 +364,7 @@ class call {
       }
     }
 
-    if( false !== this.parent ) {
+    if( 1 === this.children.length && false !== this.parent ) {
       this.parent.hangup()
     }
 
