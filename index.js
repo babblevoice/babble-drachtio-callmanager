@@ -34,7 +34,7 @@ class call {
     this.sdp = {}
 
     /* an array of channels */
-    this.chs = []
+    this.channels = []
 
     /* UACs we create */
     this.children = []
@@ -66,6 +66,12 @@ class call {
       newcall.newuacreject = reject
     } )
 
+    newcall.newuactimer = setTimeout( () => {
+      newcall.hangup( hangup_codes.NO_USER_RESPONSE )
+      newcall.newuacreject( newcall )
+
+    }, singleton.options.uactimeout )
+
     singleton.options.srf.createUAC( contact, {
         headers: {
           "From": from
@@ -80,6 +86,11 @@ class call {
           newcall.res = res
           if( 180 === res.status ) {
             newcall._onring()
+          }
+
+          if( true === newcall.canceled ) {
+            newcall.newuacreject( newcall )
+            newcall.hangup()
           }
         }
       } )
@@ -98,7 +109,7 @@ class call {
           }
 
           newcall._onhangup( "wire", reason )
-          newcall.newuacreject()
+          newcall.newuacreject( newcall )
         } else {
           consolelog( this, err )
         }
@@ -128,6 +139,9 @@ class call {
       this.parent.children = [ this ]
     }
 
+    clearTimeout( this.newuactimer )
+    delete this.newuactimer
+
     /* We now have 2 calls, we may need to answer the parent */
     /* We have this.dialog (srf dialog object) and this.sdp.remote (sdp object) */
     if( this.parent.established ) {
@@ -136,7 +150,7 @@ class call {
 
       rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
         .then( ch => {
-          this.chs.push( ch )
+          this.channels.push( ch )
 
           this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
           this.dialog.ack( this.sdp.local.toString() )
@@ -148,12 +162,12 @@ class call {
             } )
 
           if( this.canceled ) {
-            this.newuacreject()
+            this.newuacreject( this )
             return
           }
         } )
         .catch( () => {
-          this.newuacreject()
+          this.newuacreject( this )
           return
         } )
       } else {
@@ -170,7 +184,7 @@ class call {
             rtp.channel( this.sdp.local )
               .then( ch => {
                 this.sdp.local.setchannel( ch )
-                this.chs.push( ch )
+                this.channels.push( ch )
                 this.dialog.ack( this.sdp.local.toString() )
                   .then( ( dlg ) => {
                     this.dialog = dlg
@@ -208,6 +222,7 @@ class call {
         delete this.authresolve
         delete this.authreject
         delete this.authtimout
+        this.hangup( hangup_codes.NO_USER_RESPONSE )
         rj()
 
       }, 50000 )
@@ -243,10 +258,12 @@ class call {
 
       if( authed ) {
         consolelog( this, "resolving auth" )
-        clearTimeout( this.authtimout )
+        if( undefined !== this.authtimout ) {
+          clearTimeout( this.authtimout )
+          delete this.authtimout
+        }
         this.authresolve()
 
-        delete this.authtimout
         delete this.authresolve
         delete this.authreject
       }
@@ -256,10 +273,6 @@ class call {
   _oncanceled( req, res ) {
     consolelog( "client canceled" )
     this.canceled = true
-
-    if( false !== this.parent && 1 === this.parent.children.length ) {
-      this.parent.hangup()
-    }
 
     this.children.forEach( ( child ) => {
       child.hangup()
@@ -308,7 +321,7 @@ class call {
     rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
       .then( ch => {
 
-        this.chs.push( ch )
+        this.channels.push( ch )
         this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
 
         if( this.canceled ) {
@@ -358,15 +371,10 @@ class call {
     } )
   }
 
-  channels( cb ) {
-    this.chs.forEach( ( ch ) => cb( ch ) )
-    return this
-  }
-
   /* TODO suport other types by searching for audio in channels list */
   get audio() {
-    if( this.chs.length > 0 ) {
-      return this.chs[ 0 ]
+    if( this.channels.length > 0 ) {
+      return this.channels[ 0 ]
     }
     return
   }
@@ -380,18 +388,20 @@ class call {
     this.established = false
     this.destroyed = true
 
-    this.channels( ( ch ) => ch.destroy() )
-    this.chs = []
+    if( undefined !== this.newuactimer ) clearTimeout( this.newuactimer )
+    if( undefined !== this.authtimout ) {
+      clearTimeout( this.authtimout )
+      delete this.authtimout
+    }
+
+    this.channels.forEach( ( ch ) => ch.destroy() )
+    this.channels = []
 
     if( undefined !== this.source_address ) {
       singleton.calls[ this.source_address ].delete( this.sip.callid )
       if( 0 === singleton.calls[ this.source_address ].size ) {
         singleton.calls.delete( this.source_address )
       }
-    }
-
-    if( false !== this.parent && 1 === this.parent.children.length ) {
-      this.parent.hangup( reason )
     }
 
     this.children.forEach( ( child ) => {
@@ -401,24 +411,27 @@ class call {
 
   hangup( reason ) {
 
-    if( this.destroyed ) {
-      return
-    }
+    if( this.destroyed ) return
 
     if( undefined === reason ) {
       reason = hangup_codes.NORMAL_CLEARING
     }
-    /* If the call doesn't indicate a valid reason, then indicate ERROR */
-    else if( undefined === hangup_codes[ reason ] ) {
-      reason = hangup_codes.SERVER_ERROR
-    }
+
+    this.hangup_cause = reason
 
     consolelog( this, "hanging up call by request with the reason " + reason.reason + ", SIP: " + reason.sip )
 
     if( this.established ) {
       this.dialog.destroy()
     } else if( "uac" === this.type ) {
-      this.req.cancel()
+      if( undefined !== this.req ) {
+        this.req.cancel()
+      } else {
+        /* hanging up has been delayed */
+        this.canceled = true
+        return
+      }
+
     } else {
       this.res.send( reason.sip )
     }
@@ -482,14 +495,15 @@ class callmanager {
     this.options = {
       "preferedcodecs": "pcmu pcma 2833",
       "transcode": true,
-      "debug": false
+      "debug": false,
+      "uactimeout": 30000
     }
 
     this.options = { ...this.options, ...options }
 
     this.authdigest = digestauth( {
-      proxy: true, /* 407 or 401 */
-      passwordLookup: options.passwordLookup
+      "proxy": true, /* 407 or 401 */
+      "passwordLookup": options.passwordLookup
     } )
 
     this.options.srf.use( "invite", this.oninvite )
@@ -502,10 +516,14 @@ class callmanager {
 
         this.onnewcall( c )
           .catch( ( err ) => {
-
-            if( false === c.destroyed ) {
-              consolelog( c, "Unhandled exception - hanging up" )
-              c.hangup( hangup_codes.SERVER_ERROR )
+            try{
+              console.error( err )
+              if( false === c.destroyed ) {
+                consolelog( c, "Unhandled exception - hanging up" )
+                c.hangup( hangup_codes.SERVER_ERROR )
+              }
+            } catch( err ) {
+              console.error( err )
             }
           } )
       }

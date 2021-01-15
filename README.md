@@ -68,7 +68,7 @@ CallManager takes an options object as part of its construction. srf and a passw
 
 ## auth
 
-Forces the client to authenticate.
+Forces the client to authenticate. Returns a promise.
 
 ## ring
 
@@ -80,13 +80,13 @@ Ends the call with busy.
 
 ## answer
 
-Answers the call (creates a dialog) and opens the required channel.
+Answers the call (creates a dialog) and opens the required channel. Returns a promise.
 
-## channels
+## audio
 
-Provides an easy 'forEach' on all open channels for the call.
+Returns the audio channel.
 
-## hangup
+## hangup( cause )
 
 Ends the call (or cancels).
 
@@ -100,7 +100,7 @@ cm.on( "call", async ( c ) => {
   call.ring()
   await call.answer()
 
-  call.channels( ( ch ) => ch.echo() )
+  call.audio().echo()
 } )
 
 
