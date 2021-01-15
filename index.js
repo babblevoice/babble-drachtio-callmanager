@@ -145,13 +145,16 @@ class call {
               this.addevents( this.dialog )
               this.audio.mix( this.parent.audio )
               this.newuacresolve( this )
-
             } )
 
           if( this.canceled ) {
             this.newuacreject()
             return
           }
+        } )
+        .catch( () => {
+          this.newuacreject()
+          return
         } )
       } else {
         /* parent is not established */
@@ -175,6 +178,12 @@ class call {
                     this.audio.mix( this.parent.audio )
                     this.newuacresolve( this )
                   } )
+                  .catch( () => {
+                    this.newuacreject( this )
+                  } )
+              } )
+              .catch( () => {
+                this.newuacreject( this )
               } )
           } )
           .catch( () => {
@@ -194,10 +203,27 @@ class call {
     var p = new Promise( ( resolve, reject ) => {
       this.authresolve = resolve
       this.authreject = reject
+      this.authtimout = setTimeout( () => {
+        let rj = this.authreject
+        delete this.authresolve
+        delete this.authreject
+        delete this.authtimout
+        rj()
+
+      }, 50000 )
     } )
 
     var authed = false
-    singleton.authdigest( this.req, this.res, () => { this.authresolve() } )
+    singleton.authdigest( this.req, this.res, () => {
+      clearTimeout( this.authtimout )
+
+      let rs = this.authresolve
+      delete this.authresolve
+      delete this.authreject
+      delete this.authtimout
+
+      rs()
+    } )
     return p
   }
 
@@ -217,9 +243,10 @@ class call {
 
       if( authed ) {
         consolelog( this, "resolving auth" )
+        clearTimeout( this.authtimout )
         this.authresolve()
 
-        consolelog( this, "cleaning up auth" )
+        delete this.authtimout
         delete this.authresolve
         delete this.authreject
       }
@@ -265,16 +292,16 @@ class call {
       return
     }
 
+    options = { ...options, ...this.options, ...singleton.options }
+
     this.sdp.remote = sdpgen.create( this.req.msg.body )
 
-    if( undefined !== options.preferedcodecs ) {
-      this.selectedcodec = this.sdp.remote.intersection( options.preferedcodecs, true )
-      if( false === this.selectedcodec ) {
-        this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
-      }
-    } else {
+    /* options.preferedcodecs may have been narrowed down so we still check singleton as well */
+    this.selectedcodec = this.sdp.remote.intersection( options.preferedcodecs, true )
+    if( false === this.selectedcodec ) {
       this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
     }
+
 
     consolelog( this, "answer call with codec " + this.selectedcodec )
 
@@ -286,7 +313,6 @@ class call {
 
         if( this.canceled ) {
           this.answerreject()
-          this.hangup()
           return
         }
 
@@ -302,6 +328,8 @@ class call {
           this.addevents( this.dialog )
         } )
         .catch( ( err ) => { this.answerreject() } )
+      } ).catch( ( err ) => {
+        this.answerreject()
       } )
 
     return p
@@ -395,7 +423,7 @@ class call {
       this.res.send( reason.sip )
     }
 
-    this._onhangup( reason )
+    this._onhangup( "us", reason )
   }
 
   /*
@@ -444,6 +472,10 @@ const hangup_codes = {
 
 var singleton
 class callmanager {
+  /*
+  options supplied can also be provided in a call object or be provided to functions like answer
+  all 3 objects are joined the the function, call, callmanager (in that order) being used.
+  */
   constructor( options ) {
     singleton = this
 
@@ -463,13 +495,35 @@ class callmanager {
     this.options.srf.use( "invite", this.oninvite )
 
     this.em = new events.EventEmitter()
+    this.em.on( "call", ( c ) => {
+
+      if( false !== this.onnewcall ) {
+
+
+        this.onnewcall( c )
+          .catch( ( err ) => {
+
+            if( false === c.destroyed ) {
+              consolelog( c, "Unhandled exception - hanging up" )
+              c.hangup( hangup_codes.SERVER_ERROR )
+            }
+          } )
+      }
+    } )
+
+    this.onnewcall = false
 
     /* Track inbound calls. Outbound calls are not stored here */
     this.calls = new Map()
   }
 
   on( event, cb ) {
-    this.em.on( event, cb )
+    if( "call" === event ) {
+      this.onnewcall = cb
+    } else {
+      /* not used just yet */
+      this.em.on( event, cb )
+    }
   }
 
   get hangup_codes() {
