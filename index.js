@@ -385,6 +385,10 @@ class call {
     if( this.destroyed ) return
     consolelog( this, "on hangup from " + src )
 
+    if( false !== this.parent && this.established ) {
+      this.parent.hangup( reason )
+    }
+
     this.established = false
     this.destroyed = true
 
