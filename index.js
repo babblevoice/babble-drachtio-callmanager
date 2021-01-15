@@ -385,9 +385,7 @@ class call {
     if( this.destroyed ) return
     consolelog( this, "on hangup from " + src )
 
-    if( false !== this.parent && this.established ) {
-      this.parent.hangup( reason )
-    }
+    let wasestablished = this.established
 
     this.established = false
     this.destroyed = true
@@ -406,6 +404,10 @@ class call {
       if( 0 === singleton.calls[ this.source_address ].size ) {
         singleton.calls.delete( this.source_address )
       }
+    }
+
+    if( false !== this.parent && true === wasestablished ) {
+      this.parent.hangup( reason )
     }
 
     this.children.forEach( ( child ) => {
