@@ -20,6 +20,30 @@ const { v4: uuidv4 } = require( "uuid" )
 
 const rtp = new projectrtp()
 
+
+/*
+Not fully complete - but covers all we need.
+*/
+const hangup_codes = {
+  UNALLOCATED_NUMBER: { "reason": "UNALLOCATED_NUMBER", "sip": 404 },
+  USER_BUSY: { "reason": "USER_BUSY", "sip": 406 },
+  NO_USER_RESPONSE: { "reason": "NO_USER_RESPONSE", "sip": 408 }, /* Timeout */
+  NO_ANSWER: { "reason": "NO_ANSWER", "sip": 480 }, /* Temporarily Unavailable */
+  LOOP_DETECTED: { "reason": "LOOP_DETECTED", "sip": 482 },
+  INVALID_NUMBER_FORMAT: { "reason": "INVALID_NUMBER_FORMAT", "sip": 484 },
+  USER_BUSY: { "reason": "USER_BUSY", "sip": 486 },
+  NORMAL_CLEARING: { "reason": "NORMAL_CLEARING", "sip": 487 },
+  REQUEST_TERMINATED: { "reason": "REQUEST_TERMINATED", "sip": 487 },
+  INCOMPATIBLE_DESTINATION: { "reason": "INCOMPATIBLE_DESTINATION", "sip": 488 },
+  SERVER_ERROR: { "reason": "SERVER_ERROR", "sip": 500 },
+  FACILITY_REJECTED: { "reason": "FACILITY_REJECTED", "sip": 501 },
+  DESTINATION_OUT_OF_ORDER: { "reason": "DESTINATION_OUT_OF_ORDER", "sip": 502 },
+  CALL_REJECTED: { "reason": "CALL_REJECTED", "sip": 603 }
+}
+
+
+const eventdefs = [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#", "A", "B", "C", "D" ]
+
 class call {
 
   constructor( req, res ) {
@@ -52,6 +76,22 @@ class call {
 
       this.req.on( "cancel", () => this._oncanceled() )
     }
+
+    this.receivedtelevents = ""
+
+    this.authresolve = false
+    this.authreject = false
+
+    this.waitforeventstimer = false
+    this.waitforeventsresolve = false
+    this.waitforeventsreject = false
+
+    this.newuactimer = false
+    this.newuacresolve = false
+    this.newuacreject = false
+
+    this.answerresolve = false
+    this.answerreject = false
   }
 
   newuac( contact, from ) {
@@ -151,6 +191,7 @@ class call {
       rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
         .then( ch => {
           this.channels.push( ch )
+          ch.on( "telephone-event", ( e ) => this._tevent( e ) )
 
           this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
           if( true === singleton.options.rfc2833 ) {
@@ -189,6 +230,7 @@ class call {
               .then( ch => {
                 this.sdp.local.setchannel( ch )
                 this.channels.push( ch )
+                ch.on( "telephone-event", ( e ) => this._tevent( e ) )
 
                 if( true === singleton.options.rfc2833 ) {
                   this.sdp.local.addcodecs( "2833" )
@@ -288,6 +330,49 @@ class call {
     } )
   }
 
+  _tevent( e ) {
+    this.receivedtelevents += eventdefs[ e ]
+
+    if( undefined !== this.eventmatch ) {
+      if( this.eventmatch.test( this.receivedtelevents ) ) {
+
+        if( false !== this.waitforeventsresolve ) {
+          this.waitforeventsresolve( this.receivedtelevents )
+          this.waitforeventsresolve = false
+          clearTimeout( this.waitforeventstimer )
+        }
+      }
+    }
+  }
+
+  waitforevents( match = /[0-9A-D\*#]/, timeout = 30000 ) {
+
+    if( typeof match === "string" ){
+      this.eventmatch = new RegExp( match )
+    } else {
+      this.eventmatch = match
+    }
+
+    return new Promise( ( resolve, reject ) => {
+
+      this.waitforeventstimer = setTimeout( () => {
+        if( false === this.waitforeventsreject ) {
+          this.waitforeventsreject()
+          this.waitforeventsreject = false
+        }
+
+      }, timeout )
+
+      /* All (previous) promises must be resolved */
+      if( false !== this.waitforeventsreject ) {
+        this.waitforeventsreject()
+      }
+
+      this.waitforeventsresolve = resolve
+      this.waitforeventsreject = reject
+    } )
+  }
+
   ring() {
     if( !this.ringing && "uas" === this.type ) {
       this.ringing = true
@@ -324,7 +409,6 @@ class call {
       this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
     }
 
-
     consolelog( this, "answer call with codec " + this.selectedcodec )
 
     rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
@@ -332,6 +416,7 @@ class call {
 
         this.channels.push( ch )
         this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
+        ch.on( "telephone-event", ( e ) => this._tevent( e ) )
 
         if( this.canceled ) {
           this.answerreject()
@@ -340,6 +425,7 @@ class call {
 
         if( true === singleton.options.rfc2833 ) {
           this.sdp.local.addcodecs( "2833" )
+          ch.rfc2833( 101 )
         }
 
         singleton.options.srf.createUAS( this.req, this.res, {
@@ -482,26 +568,6 @@ function consolelog( c, data ) {
   }
 }
 
-/*
-Not fully complete - but covers all we need.
-*/
-const hangup_codes = {
-  UNALLOCATED_NUMBER: { "reason": "UNALLOCATED_NUMBER", "sip": 404 },
-  USER_BUSY: { "reason": "USER_BUSY", "sip": 406 },
-  NO_USER_RESPONSE: { "reason": "NO_USER_RESPONSE", "sip": 408 }, /* Timeout */
-  NO_ANSWER: { "reason": "NO_ANSWER", "sip": 480 }, /* Temporarily Unavailable */
-  LOOP_DETECTED: { "reason": "LOOP_DETECTED", "sip": 482 },
-  INVALID_NUMBER_FORMAT: { "reason": "INVALID_NUMBER_FORMAT", "sip": 484 },
-  USER_BUSY: { "reason": "USER_BUSY", "sip": 486 },
-  NORMAL_CLEARING: { "reason": "NORMAL_CLEARING", "sip": 487 },
-  REQUEST_TERMINATED: { "reason": "REQUEST_TERMINATED", "sip": 487 },
-  INCOMPATIBLE_DESTINATION: { "reason": "INCOMPATIBLE_DESTINATION", "sip": 488 },
-  SERVER_ERROR: { "reason": "SERVER_ERROR", "sip": 500 },
-  FACILITY_REJECTED: { "reason": "FACILITY_REJECTED", "sip": 501 },
-  DESTINATION_OUT_OF_ORDER: { "reason": "DESTINATION_OUT_OF_ORDER", "sip": 502 },
-  CALL_REJECTED: { "reason": "CALL_REJECTED", "sip": 603 }
-}
-
 var singleton
 class callmanager {
   /*
@@ -512,7 +578,7 @@ class callmanager {
     singleton = this
 
     this.options = {
-      "preferedcodecs": "pcmu pcma",
+      "preferedcodecs": "g722 pcmu pcma ilbc",
       "transcode": true,
       "debug": false,
       "uactimeout": 30000,
