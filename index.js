@@ -20,6 +20,14 @@ const { v4: uuidv4 } = require( "uuid" )
 
 const rtp = new projectrtp()
 
+const default_options = {
+  "preferedcodecs": "g722 ilbc pcmu pcma",
+  "transcode": true,
+  "debug": false,
+  "uactimeout": 30000,
+  "rfc2833": true
+}
+
 
 /*
 Not fully complete - but covers all we need.
@@ -81,6 +89,7 @@ class call {
 
     this.authresolve = false
     this.authreject = false
+    this.authtimout = false
 
     this.waitforeventstimer = false
     this.waitforeventsresolve = false
@@ -96,66 +105,65 @@ class call {
 
   newuac( contact, from ) {
 
-    let newcall = new call()
-    newcall.type = "uac"
-    newcall.parent = this
-    this.children.push( newcall )
+    return new Promise( ( resolve, reject ) => {
 
-    var p = new Promise( ( resolve, reject ) => {
+      let newcall = new call()
+      newcall.type = "uac"
+      newcall.parent = this
       newcall.newuacresolve = resolve
       newcall.newuacreject = reject
-    } )
+      this.children.push( newcall )
 
-    newcall.newuactimer = setTimeout( () => {
-      newcall.hangup( hangup_codes.NO_USER_RESPONSE )
-      newcall.newuacreject( newcall )
+      newcall.newuactimer = setTimeout( () => {
+        newcall.hangup( hangup_codes.NO_USER_RESPONSE )
+        newcall.newuacreject( newcall )
 
-    }, singleton.options.uactimeout )
+      }, singleton.options.uactimeout )
 
-    singleton.options.srf.createUAC( contact, {
-        headers: {
-          "From": from
+      singleton.options.srf.createUAC( contact, {
+          headers: {
+            "From": from
+          },
+          noAck: true
         },
-        noAck: true
-      },
-      {
-        cbRequest: ( err, req ) => {
-          newcall.req = req
-        },
-        cbProvisional: ( res ) => {
-          newcall.res = res
-          if( 180 === res.status ) {
-            newcall._onring()
+        {
+          cbRequest: ( err, req ) => {
+            newcall.req = req
+          },
+          cbProvisional: ( res ) => {
+            newcall.res = res
+            if( 180 === res.status ) {
+              newcall._onring()
+            }
+
+            if( true === newcall.canceled ) {
+              newcall.newuacreject( newcall )
+              newcall.hangup()
+            }
           }
+        } )
+        .then( ( dlg ) => {
+          newcall.dialog = dlg
+          newcall.sdp.remote = sdpgen.create( dlg.sdp )
+          newcall.established = true
+          newcall._onanswer()
+        } )
+        .catch( ( err ) => {
 
-          if( true === newcall.canceled ) {
+          if ( undefined !== err.status ) {
+            let reason = hangup_codes.REQUEST_TERMINATED
+            if( 486 === err.status ) {
+              reason = hangup_codes.USER_BUSY
+            }
+
+            newcall._onhangup( "wire", reason )
             newcall.newuacreject( newcall )
-            newcall.hangup()
+          } else {
+            consolelog( this, err )
           }
-        }
-      } )
-      .then( ( dlg ) => {
-        newcall.dialog = dlg
-        newcall.sdp.remote = sdpgen.create( dlg.sdp )
-        newcall.established = true
-        newcall._onanswer()
-      } )
-      .catch( ( err ) => {
+        } )
 
-        if ( undefined !== err.status ) {
-          let reason = hangup_codes.REQUEST_TERMINATED
-          if( 486 === err.status ) {
-            reason = hangup_codes.USER_BUSY
-          }
-
-          newcall._onhangup( "wire", reason )
-          newcall.newuacreject( newcall )
-        } else {
-          consolelog( this, err )
-        }
-      } )
-
-    return p
+    } )
   }
 
   /* Called from newuac when we receive a 180 */
@@ -180,7 +188,7 @@ class call {
     }
 
     clearTimeout( this.newuactimer )
-    delete this.newuactimer
+    this.newuactimer = false
 
     /* We now have 2 calls, we may need to answer the parent */
     /* We have this.dialog (srf dialog object) and this.sdp.remote (sdp object) */
@@ -265,32 +273,29 @@ class call {
     auth - returns promise.
   */
   auth() {
-    var p = new Promise( ( resolve, reject ) => {
+    return new Promise( ( resolve, reject ) => {
       this.authresolve = resolve
       this.authreject = reject
       this.authtimout = setTimeout( () => {
-        let rj = this.authreject
-        delete this.authresolve
-        delete this.authreject
-        delete this.authtimout
+        this.authreject()
+        this.authresolve = false
+        this.authreject = false
+        this.authtimout = false
+
         this.hangup( hangup_codes.NO_USER_RESPONSE )
-        rj()
 
       }, 50000 )
+
+      singleton.authdigest( this.req, this.res, () => {
+
+        if( false !== this.authtimout ) clearTimeout( this.authtimout )
+
+        this.authresolve()
+        this.authresolve = false
+        this.authreject = false
+        this.authtimout = false
+      } )
     } )
-
-    var authed = false
-    singleton.authdigest( this.req, this.res, () => {
-      clearTimeout( this.authtimout )
-
-      let rs = this.authresolve
-      delete this.authresolve
-      delete this.authreject
-      delete this.authtimout
-
-      rs()
-    } )
-    return p
   }
 
   /* Private - called by us */
@@ -309,14 +314,14 @@ class call {
 
       if( authed ) {
         consolelog( this, "resolving auth" )
-        if( undefined !== this.authtimout ) {
+        if( false !== this.authtimout ) {
           clearTimeout( this.authtimout )
-          delete this.authtimout
+          this.authtimout = false
         }
         this.authresolve()
 
-        delete this.authresolve
-        delete this.authreject
+        this.authresolve = false
+        this.authreject = false
       }
     }
   }
@@ -334,10 +339,11 @@ class call {
     this.receivedtelevents += eventdefs[ e ]
 
     if( undefined !== this.eventmatch ) {
-      if( this.eventmatch.test( this.receivedtelevents ) ) {
+      let ourmatch = this.receivedtelevents.match( this.eventmatch )
+      if( null !== ourmatch ) {
 
         if( false !== this.waitforeventsresolve ) {
-          this.waitforeventsresolve( this.receivedtelevents )
+          this.waitforeventsresolve( ourmatch[ 0 ] )
           this.waitforeventsresolve = false
           clearTimeout( this.waitforeventstimer )
         }
@@ -347,21 +353,22 @@ class call {
 
   waitforevents( match = /[0-9A-D\*#]/, timeout = 30000 ) {
 
-    if( typeof match === "string" ){
-      this.eventmatch = new RegExp( match )
-    } else {
-      this.eventmatch = match
-    }
-
     return new Promise( ( resolve, reject ) => {
 
       this.waitforeventstimer = setTimeout( () => {
         if( false === this.waitforeventsreject ) {
           this.waitforeventsreject()
           this.waitforeventsreject = false
+          this.waitforeventsresolve = false
         }
 
       }, timeout )
+
+      if( typeof match === "string" ){
+        this.eventmatch = new RegExp( match )
+      } else {
+        this.eventmatch = match
+      }
 
       /* All (previous) promises must be resolved */
       if( false !== this.waitforeventsreject ) {
@@ -389,62 +396,61 @@ class call {
     Answer the call and store a channel which can be used.
   */
   answer( options = {} ) {
-    var p = new Promise( ( resolve, reject ) => {
+    return new Promise( ( resolve, reject ) => {
+
       this.answerresolve = resolve
       this.answerreject = reject
-    } )
 
-    if( this.canceled ) {
-      this.answerreject()
-      return
-    }
-
-    options = { ...options, ...this.options, ...singleton.options }
-
-    this.sdp.remote = sdpgen.create( this.req.msg.body )
-
-    /* options.preferedcodecs may have been narrowed down so we still check singleton as well */
-    this.selectedcodec = this.sdp.remote.intersection( options.preferedcodecs, true )
-    if( false === this.selectedcodec ) {
-      this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
-    }
-
-    consolelog( this, "answer call with codec " + this.selectedcodec )
-
-    rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
-      .then( ch => {
-
-        this.channels.push( ch )
-        this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
-        ch.on( "telephone-event", ( e ) => this._tevent( e ) )
-
-        if( this.canceled ) {
-          this.answerreject()
-          return
-        }
-
-        if( true === singleton.options.rfc2833 ) {
-          this.sdp.local.addcodecs( "2833" )
-          ch.rfc2833( 101 )
-        }
-
-        singleton.options.srf.createUAS( this.req, this.res, {
-          localSdp: this.sdp.local.toString()
-        } )
-        .then( ( dialog ) => {
-          this.established = true
-          this.dialog = dialog
-          this.addevents( this.dialog )
-          this.answerresolve()
-
-          this.addevents( this.dialog )
-        } )
-        .catch( ( err ) => { this.answerreject() } )
-      } ).catch( ( err ) => {
+      if( this.canceled ) {
         this.answerreject()
-      } )
+        return
+      }
 
-    return p
+      options = { ...options, ...this.options, ...singleton.options }
+
+      this.sdp.remote = sdpgen.create( this.req.msg.body )
+
+      /* options.preferedcodecs may have been narrowed down so we still check singleton as well */
+      this.selectedcodec = this.sdp.remote.intersection( options.preferedcodecs, true )
+      if( false === this.selectedcodec ) {
+        this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
+      }
+
+      consolelog( this, "answer call with codec " + this.selectedcodec )
+
+      rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
+        .then( ch => {
+
+          this.channels.push( ch )
+          this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
+          ch.on( "telephone-event", ( e ) => this._tevent( e ) )
+
+          if( this.canceled ) {
+            this.answerreject()
+            return
+          }
+
+          if( true === singleton.options.rfc2833 ) {
+            this.sdp.local.addcodecs( "2833" )
+            ch.rfc2833( 101 )
+          }
+
+          singleton.options.srf.createUAS( this.req, this.res, {
+            localSdp: this.sdp.local.toString()
+          } )
+          .then( ( dialog ) => {
+            this.established = true
+            this.dialog = dialog
+            this.addevents( this.dialog )
+            this.answerresolve()
+
+            this.addevents( this.dialog )
+          } )
+          .catch( ( err ) => { this.answerreject() } )
+        } ).catch( ( err ) => {
+          this.answerreject()
+        } )
+    } )
   }
 
   addevents( dialog ) {
@@ -492,7 +498,7 @@ class call {
     if( undefined !== this.newuactimer ) clearTimeout( this.newuactimer )
     if( undefined !== this.authtimout ) {
       clearTimeout( this.authtimout )
-      delete this.authtimout
+      this.authtimout = false
     }
 
     this.channels.forEach( ( ch ) => ch.destroy() )
@@ -577,15 +583,7 @@ class callmanager {
   constructor( options ) {
     singleton = this
 
-    this.options = {
-      "preferedcodecs": "g722 pcmu pcma ilbc",
-      "transcode": true,
-      "debug": false,
-      "uactimeout": 30000,
-      "rfc2833": true
-    }
-
-    this.options = { ...this.options, ...options }
+    this.options = { ...default_options, ...options }
 
     this.authdigest = digestauth( {
       "proxy": true, /* 407 or 401 */
