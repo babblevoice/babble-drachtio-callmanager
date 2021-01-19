@@ -125,7 +125,6 @@ cm.on( "call", async ( c ) => {
   await call.answer()
 
   call.audio.play( { "files": [ { "wav": "pleasedialoneforsalesandtwofortech.wav" } ] } )
-  call.audio().echo()
 
   var e = await call.waitforevents( /[0-1]/ )
   console.log( "waited and got " + e )
