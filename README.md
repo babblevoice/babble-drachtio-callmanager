@@ -90,10 +90,22 @@ Returns the audio channel.
 
 Ends the call (or cancels).
 
-## Example
+## waitforevents
+
+Waits for telephone events (DTMF). We pass a regular expression in to match the entered digits. In the example below, 2 digits (any in the DTMF range) are required followed by the hash key.
+
+If the user dials 123456 = it will not trigger as there is no '#' at the end. If they dial 1234567# then it will return with e = 67#
 
 ```javascript
+var e = await call.waitforevents( /[0-9A-D\*#]{2}#/ )
+console.log( "waited and got " + e )
+```
 
+## Example
+
+Authorise the call, sending ringing then answer. Once answered, echo RTP data back to the client.
+
+```javascript
 cm.on( "call", async ( c ) => {
 
   await call.auth()
@@ -102,6 +114,20 @@ cm.on( "call", async ( c ) => {
 
   call.audio().echo()
 } )
+```
 
+An example for prompting and waiting for DTMF (auto attendant).
 
+No auth or need to send ringing, we answer and when answered, we play a file then wait for caller to enter input.
+```javascript
+cm.on( "call", async ( c ) => {
+
+  await call.answer()
+
+  call.audio.play( { "files": [ { "wav": "pleasedialoneforsalesandtwofortech.wav" } ] } )
+  call.audio().echo()
+
+  var e = await call.waitforevents( /[0-1]/ )
+  console.log( "waited and got " + e )
+} )
 ```
