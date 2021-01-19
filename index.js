@@ -101,6 +101,8 @@ class call {
 
     this.answerresolve = false
     this.answerreject = false
+
+    this.held = false
   }
 
   newuac( contact, from ) {
@@ -327,7 +329,7 @@ class call {
   }
 
   _oncanceled( req, res ) {
-    consolelog( "client canceled" )
+    consolelog( this, "client canceled" )
     this.canceled = true
 
     this.children.forEach( ( child ) => {
@@ -453,6 +455,42 @@ class call {
     } )
   }
 
+  _hold() {
+
+    consolelog( this, "Placing call on hold" )
+    if( this.held ) return
+    this.held = true
+
+    this.audio.unmix( this.audio )
+
+    let other
+    if( false !== this.parent ) {
+      other = this.parent
+    } else {
+      if( 0 === this.children.length ) return
+      other = this.children[ 0 ]
+    }
+
+    other.audio.play( singleton.options.moh )
+  }
+
+  _unhold() {
+    consolelog( this, "Call off hold" )
+    if( !this.held ) return
+    this.held = false
+
+    let other
+    if( false !== this.parent ) {
+      other = this.parent
+    } else {
+      if( 0 === this.children.length ) return
+      other = this.children[ 0 ]
+    }
+
+    this.audio.mix( other.audio )
+
+  }
+
   addevents( dialog ) {
     dialog.on( "destroy", ( req ) => {
       if( this.destroyed ) return
@@ -460,19 +498,35 @@ class call {
     } )
 
     dialog.on( "hold", ( req ) => {
-
+      this._hold()
     } )
 
     dialog.on( "unhold", ( req ) => {
-
+      this._unhold()
     } )
 
     dialog.on( "refer", ( req, res ) => {
-
+      consolelog( this, "refer" )
     } )
 
     dialog.on( "modify", ( req, res ) => {
       //  The application must respond, using the res parameter provided.
+      if( "INVITE" === req.msg.method ) {
+
+        let sdp = sdpgen.create( req.msg.body )
+        let media = sdp.getmedia()
+
+        if( ( "inactive" === media.direction || "0.0.0.0" === sdp.sdp.connection.ip ) && !this.held ) {
+          this._hold()
+        } else if( "inactive" !== media.direction && "0.0.0.0" !== sdp.sdp.connection.ip && this.held ) {
+          this._unhold()
+        }
+
+        res.send( 200 )
+      }
+
+      consolelog( this, "modify" )
+
     } )
   }
 
