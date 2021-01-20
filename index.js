@@ -102,6 +102,9 @@ class call {
     this.answerresolve = false
     this.answerreject = false
 
+    this.waitforhangupresolve = false
+    this.waitforhangupreject = false
+
     this.held = false
   }
 
@@ -139,8 +142,8 @@ class call {
             }
 
             if( true === newcall.canceled ) {
-              newcall.newuacreject( newcall )
               newcall.hangup()
+              newcall.newuacreject( newcall )
             }
           }
         } )
@@ -170,6 +173,7 @@ class call {
 
   /* Called from newuac when we receive a 180 */
   _onring() {
+    this.ringing = true
     if( false !== this.parent ) {
       consolelog( this, "received 180 ringing" )
       this.parent.ring()
@@ -458,7 +462,7 @@ class call {
         return
       }
 
-      options = { ...options, ...this.options, ...singleton.options }
+      options = { ...singleton.options, ...this.options, ...options }
 
       this.sdp.remote = sdpgen.create( this.req.msg.body )
 
@@ -600,8 +604,13 @@ class call {
   /* When our dialog has confirmed we have hung up */
   _onhangup( src = "us", reason ) {
 
-    if( this.destroyed ) return
+    if( this.destroyed ) {
+      this._cleanup()
+      return
+    }
+
     consolelog( this, "on hangup from " + src )
+    this.hangup_cause = reason
 
     let wasestablished = this.established
 
@@ -631,14 +640,64 @@ class call {
     this.children.forEach( ( child ) => {
       child.hangup( reason )
     } )
+
+    this._cleanup()
   }
 
+  /* Use this as our destructor. This may get called more than once depending on what is going on */
+  _cleanup() {
+    /* Clean up promises (ensure they are resolved) and clear any timers */
+    if( false !== this.authreject ) {
+      this.authreject( this )
+    }
+
+    if( false !== this.waitforeventstimer ) {
+      clearTimeout( this.waitforeventstimer )
+      this.waitforeventstimer = false
+    }
+
+    if( false !== this.waitforeventsresolve ) {
+      this.waitforeventsresolve( this )
+      this.waitforeventsresolve = false
+    }
+
+    if( false !== this.newuactimer ) {
+      clearTimeout( this.newuactimer )
+      this.newuactimer = false
+    }
+
+    if( false !== this.newuacreject ) {
+      this.newuacreject( this )
+      this.newuacreject = false
+    }
+
+    if( false !== this.answerreject ) {
+      this.answerreject( this )
+      this.answerreject = false
+    }
+
+    if( false !== this.waitforhangupresolve ) {
+      this.waitforhangupresolve( this )
+      this.waitforhangupresolve = false
+    }
+  }
+
+/*
+  reason can be:
+  undefined = we hangup with NORMAL_CLEARING
+  a call object = we take a hangup_cause from the call object and use it (i.e. the hangup_cause is set)
+  otherwise it is should be a hangup_cause taken from hangup_codes
+*/
   hangup( reason ) {
 
     if( this.destroyed ) return
 
     if( undefined === reason ) {
       reason = hangup_codes.NORMAL_CLEARING
+    } else if ( typeof reason === "object" ) {
+      if( undefined !== reason.hangup_cause ) {
+        reason = reason.hangup_cause
+      }
     }
 
     this.hangup_cause = reason
@@ -679,6 +738,19 @@ class call {
     }
   }
 
+  waitforhangup() {
+    return new Promise( ( resolve, reject ) => {
+      this.waitforhangupresolve = resolve
+      this.waitforhangupreject = reject
+
+      if( this.destroyed ) {
+        this.waitforhangupresolve()
+        this.waitforhangupresolve = false
+        this.waitforhangupreject = false
+      }
+    } )
+  }
+
 }
 
 function consolelog( c, data ) {
@@ -710,10 +782,9 @@ class callmanager {
 
       if( false !== this.onnewcall ) {
 
-
         this.onnewcall( c )
           .catch( ( err ) => {
-            try{
+            try {
               console.error( err )
               if( false === c.destroyed ) {
                 consolelog( c, "Unhandled exception - hanging up" )

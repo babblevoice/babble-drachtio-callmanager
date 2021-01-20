@@ -101,7 +101,11 @@ var e = await call.waitforevents( /[0-9A-D\*#]{2}#/ )
 console.log( "waited and got " + e )
 ```
 
-## Example
+## waitforhangup
+
+Returns a promise which is resolved when the call object is hungup. Useful if you wish to further actions when a child call has hung up.
+
+# Examples
 
 Authorise the call, sending ringing then answer. Once answered, echo RTP data back to the client.
 
