@@ -121,7 +121,6 @@ class call {
 
       newcall.newuactimer = setTimeout( () => {
         newcall.hangup( hangup_codes.NO_USER_RESPONSE )
-        newcall.newuacreject( newcall )
 
       }, singleton.options.uactimeout )
 
@@ -143,7 +142,6 @@ class call {
 
             if( true === newcall.canceled ) {
               newcall.hangup()
-              newcall.newuacreject( newcall )
             }
           }
         } )
@@ -162,7 +160,6 @@ class call {
             }
 
             newcall._onhangup( "wire", reason )
-            newcall.newuacreject( newcall )
           } else {
             consolelog( this, err )
           }
@@ -705,18 +702,21 @@ class call {
     consolelog( this, "hanging up call by request with the reason " + reason.reason + ", SIP: " + reason.sip )
 
     if( this.established ) {
-      this.dialog.destroy()
+      try {
+        this.dialog.destroy()
+      } catch( e ) { console.error( "Unknown error trying to destroy" ) }
+
     } else if( "uac" === this.type ) {
-      if( undefined !== this.req ) {
+      try {
         this.req.cancel()
-      } else {
-        /* hanging up has been delayed */
-        this.canceled = true
-        return
-      }
+      } catch( e ) { console.error( "Unknown error trying to cancel" ) }
+
+      this.canceled = true
 
     } else {
-      this.res.send( reason.sip )
+      try {
+        this.res.send( reason.sip )
+      } catch( e ) { console.error( "Unknown error trying to send" ) }
     }
 
     this._onhangup( "us", reason )
