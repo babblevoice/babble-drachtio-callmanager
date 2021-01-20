@@ -214,15 +214,31 @@ class call {
               this.addevents( this.dialog )
               this.audio.mix( this.parent.audio )
               this.newuacresolve( this )
+
+              if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+              this.newuactimer = false
+              this.newuacresolve = false
+              this.newuacreject = false
             } )
 
           if( this.canceled ) {
             this.newuacreject( this )
+            if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+            this.newuactimer = false
+            this.newuacresolve = false
+            this.newuacreject = false
             return
           }
         } )
         .catch( () => {
           this.newuacreject( this )
+          if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+          this.newuactimer = false
+          this.newuacresolve = false
+          this.newuacreject = false
           return
         } )
       } else {
@@ -252,17 +268,41 @@ class call {
                     this.addevents( this.dialog )
                     this.audio.mix( this.parent.audio )
                     this.newuacresolve( this )
+
+                    if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+                    this.newuactimer = false
+                    this.newuacresolve = false
+                    this.newuacreject = false
                   } )
                   .catch( () => {
                     this.newuacreject( this )
+
+                    if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+                    this.newuactimer = false
+                    this.newuacresolve = false
+                    this.newuacreject = false
                   } )
               } )
               .catch( () => {
                 this.newuacreject( this )
+
+                if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+                this.newuactimer = false
+                this.newuacresolve = false
+                this.newuacreject = false
               } )
           } )
           .catch( () => {
             this.newuacreject( this )
+
+            if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
+
+            this.newuactimer = false
+            this.newuacresolve = false
+            this.newuacreject = false
           } )
       }
   }
@@ -324,6 +364,7 @@ class call {
 
         this.authresolve = false
         this.authreject = false
+        this.authtimout = false
       }
     }
   }
@@ -343,12 +384,16 @@ class call {
     if( undefined !== this.eventmatch ) {
       let ourmatch = this.receivedtelevents.match( this.eventmatch )
       if( null !== ourmatch ) {
-
         if( false !== this.waitforeventsresolve ) {
           this.waitforeventsresolve( ourmatch[ 0 ] )
-          this.waitforeventsresolve = false
+        }
+        if( false !== this.waitforeventstimer ) {
           clearTimeout( this.waitforeventstimer )
         }
+
+        this.waitforeventsresolve = false
+        this.waitforeventsreject = false
+        this.waitforeventstimer = false
       }
     }
   }
@@ -360,9 +405,10 @@ class call {
       this.waitforeventstimer = setTimeout( () => {
         if( false === this.waitforeventsreject ) {
           this.waitforeventsreject()
-          this.waitforeventsreject = false
-          this.waitforeventsresolve = false
         }
+        this.waitforeventsreject = false
+        this.waitforeventsresolve = false
+        this.waitforeventstimer = false
 
       }, timeout )
 
@@ -375,6 +421,10 @@ class call {
       /* All (previous) promises must be resolved */
       if( false !== this.waitforeventsreject ) {
         this.waitforeventsreject()
+      }
+
+      if( false !== this.waitforeventstimer ) {
+        clearTimeout( this.waitforeventstimer )
       }
 
       this.waitforeventsresolve = resolve
@@ -429,6 +479,9 @@ class call {
 
           if( this.canceled ) {
             this.answerreject()
+
+            this.answerresolve = false
+            this.answerreject = false
             return
           }
 
@@ -446,11 +499,17 @@ class call {
             this.addevents( this.dialog )
             this.answerresolve()
 
+            this.answerresolve = false
+            this.answerreject = false
+
             this.addevents( this.dialog )
           } )
           .catch( ( err ) => { this.answerreject() } )
         } ).catch( ( err ) => {
           this.answerreject()
+
+          this.answerresolve = false
+          this.answerreject = false
         } )
     } )
   }
