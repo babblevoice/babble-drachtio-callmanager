@@ -120,6 +120,7 @@ class call {
       this.children.push( newcall )
 
       newcall.newuactimer = setTimeout( () => {
+        consolelog( newcall, "UAC timer fired" )
         newcall.hangup( hangup_codes.NO_USER_RESPONSE )
 
       }, singleton.options.uactimeout )
