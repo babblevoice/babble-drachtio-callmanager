@@ -224,7 +224,7 @@ class call {
             } )
 
           if( this.canceled ) {
-            this.newuacreject( this )
+            if( false !== this.newuacreject ) this.newuacreject( this )
             if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
 
             this.newuactimer = false
@@ -234,7 +234,7 @@ class call {
           }
         } )
         .catch( () => {
-          this.newuacreject( this )
+          if( false !== this.newuacreject ) this.newuacreject( this )
           if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
 
           this.newuactimer = false
@@ -277,8 +277,7 @@ class call {
                     this.newuacreject = false
                   } )
                   .catch( () => {
-                    this.newuacreject( this )
-
+                    if( false !== this.newuacreject ) this.newuacreject( this )
                     if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
 
                     this.newuactimer = false
@@ -287,8 +286,7 @@ class call {
                   } )
               } )
               .catch( () => {
-                this.newuacreject( this )
-
+                if( false !== this.newuacreject ) this.newuacreject( this )
                 if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
 
                 this.newuactimer = false
@@ -297,8 +295,7 @@ class call {
               } )
           } )
           .catch( () => {
-            this.newuacreject( this )
-
+            if( false !== this.newuacreject ) this.newuacreject( this )
             if( false !== this.newuactimer ) clearTimeout( this.newuactimer )
 
             this.newuactimer = false
