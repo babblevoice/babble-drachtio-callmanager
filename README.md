@@ -90,7 +90,7 @@ Returns the audio channel.
 
 Ends the call (or cancels).
 
-## waitforevents
+## waitforevents( regex, timeout = 30000mS )
 
 Waits for telephone events (DTMF). We pass a regular expression in to match the entered digits. In the example below, 2 digits (any in the DTMF range) are required followed by the hash key.
 
