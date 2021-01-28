@@ -10,15 +10,12 @@ TODO
 const assert = require( "assert" )
 const events = require('events')
 const digestauth = require( "drachtio-mw-digest-auth" )
-const regparser = require( "drachtio-mw-registration-parser" )
 const parseuri = require( "drachtio-srf" ).parseUri
 
 /* RTP */
 const projectrtp = require( "babble-projectrtp" ).ProjectRTP
 const sdpgen = require( "babble-projectrtp" ).sdp
 const { v4: uuidv4 } = require( "uuid" )
-
-const rtp = new projectrtp()
 
 const default_options = {
   "preferedcodecs": "g722 ilbc pcmu pcma",
@@ -200,7 +197,7 @@ class call {
       this.selectedcodec = this.sdp.remote.intersection( singleton.options.preferedcodecs, true )
       consolelog( this, "remote codec chosen: " + this.selectedcodec )
 
-      rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
+      singleton.rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
         .then( ch => {
           this.channels.push( ch )
           ch.on( "telephone-event", ( e ) => this._tevent( e ) )
@@ -254,7 +251,7 @@ class call {
             this.selectedcodec = this.parent.selectedcodec
 
             this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec )
-            rtp.channel( this.sdp.local )
+            singleton.rtp.channel( this.sdp.local )
               .then( ch => {
                 this.sdp.local.setchannel( ch )
                 this.channels.push( ch )
@@ -469,7 +466,7 @@ class call {
 
       consolelog( this, "answer call with codec " + this.selectedcodec )
 
-      rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
+      singleton.rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
         .then( ch => {
           consolelog( this, "channel opened" )
 
@@ -765,13 +762,20 @@ class callmanager {
   all 3 objects are joined the the function, call, callmanager (in that order) being used.
   */
   constructor( options ) {
+
+    this.rtp = new projectrtp()
+    this.rtp.on( "connection", ( conn ) => {
+      if( singleton.options.debug ) {
+        console.log( "projectrtp connected" )
+      }
+    } )
     singleton = this
 
     this.options = { ...default_options, ...options }
 
     this.authdigest = digestauth( {
       "proxy": true, /* 407 or 401 */
-      "passwordLookup": options.passwordLookup
+      "passwordLookup": this.options.passwordLookup
     } )
 
     this.options.srf.use( "invite", this.oninvite )
@@ -829,10 +833,12 @@ class callmanager {
       let c = new call( req, res )
       singleton.calls[ req.source_address ][ req.msg.headers[ "call-id" ] ] = c
       singleton.em.emit( "call", c )
+      return
     } else {
       /* existing call... */
       let c = singleton.calls[ req.source_address ][ req.msg.headers[ "call-id" ] ]
       c._onauth( req, res )
+      return
     }
 
     return next()
