@@ -471,6 +471,7 @@ class call {
 
       rtp.channel( this.sdp.remote.select( this.selectedcodec ) )
         .then( ch => {
+          consolelog( this, "channel opened" )
 
           this.channels.push( ch )
           this.sdp.local = sdpgen.create().addcodecs( this.selectedcodec ).setchannel( ch )
@@ -618,7 +619,7 @@ class call {
       this.authtimout = false
     }
 
-    this.channels.forEach( ( ch ) => ch.destroy() )
+    this.channels.forEach( ( ch ) => ch.destroy().catch( () => { consolelog( "Channel already closed - perhaps RTP stalled?" ) } ) )
     this.channels = []
 
     if( undefined !== this.source_address ) {
