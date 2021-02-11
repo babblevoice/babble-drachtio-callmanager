@@ -347,10 +347,8 @@ class call {
     /* are we waiting for an auth ?*/
     if( undefined !== this.authresolve ) {
       consolelog( this, "checking auth" )
-      let authed = false
-      singleton.authdigest( this.req, this.res, () => { authed = true } )
 
-      if( authed ) {
+      singleton.authdigest( this.req, this.res, () => { 
         consolelog( this, "resolving auth" )
         if( false !== this.authtimout ) {
           clearTimeout( this.authtimout )
@@ -361,7 +359,7 @@ class call {
         this.authresolve = false
         this.authreject = false
         this.authtimout = false
-      }
+      } )
     }
   }
 
