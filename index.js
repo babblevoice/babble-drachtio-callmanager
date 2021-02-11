@@ -5,8 +5,6 @@ TODO
 * In calls dict clean up when calls are hung up
 */
 
-'use strict'
-
 const assert = require( "assert" )
 const events = require('events')
 const digestauth = require( "drachtio-mw-digest-auth" )
@@ -778,8 +776,13 @@ class callmanager {
 
     this.options.srf.use( "invite", this.oninvite )
 
-    this.em = new events.EventEmitter()
-    this.em.on( "call", ( c ) => {
+    assert( undefined !== this.options.srf )
+
+    if( undefined === this.options.em ) {
+      this.options.em = new events.EventEmitter()
+    }
+
+    this.options.em.on( "call", ( c ) => {
 
       if( false !== this.onnewcall ) {
 
@@ -809,7 +812,7 @@ class callmanager {
       this.onnewcall = cb
     } else {
       /* not used just yet */
-      this.em.on( event, cb )
+      this.options.em.on( event, cb )
     }
   }
 
@@ -830,7 +833,7 @@ class callmanager {
     if( undefined === singleton.calls[ req.source_address ][ req.msg.headers[ "call-id" ] ] ) {
       let c = new call( req, res )
       singleton.calls[ req.source_address ][ req.msg.headers[ "call-id" ] ] = c
-      singleton.em.emit( "call", c )
+      singleton.options.em.emit( "call", c )
       return
     } else {
       /* existing call... */
