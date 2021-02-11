@@ -346,7 +346,7 @@ class call {
     if( undefined !== this.authresolve ) {
       consolelog( this, "checking auth" )
 
-      singleton.authdigest( this.req, this.res, () => { 
+      singleton.authdigest( this.req, this.res, () => {
         consolelog( this, "resolving auth" )
         if( false !== this.authtimout ) {
           clearTimeout( this.authtimout )
