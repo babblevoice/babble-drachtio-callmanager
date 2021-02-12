@@ -7,13 +7,14 @@ TODO
 
 const assert = require( "assert" )
 const events = require('events')
-const parseuri = require( "drachtio-srf" ).parseUri
 
 /* RTP */
 const projectrtp = require( "babble-projectrtp" ).ProjectRTP
 
 const hangupcodes = require( "./lib/call.js" ).hangupcodes
 const call = require( "./lib/call.js" ).call
+const setcalllog = require( "./lib/call.js" ).setconsolelog
+const setcallmanager = require( "./lib/call.js" ).setcallmanager
 const callstore = require( "./lib/store.js" )
 
 
@@ -42,20 +43,36 @@ class callmanager {
 
     this.options = { ...default_options, ...options }
 
+    if( undefined === this.options.em ) {
+      this.options.em = new events.EventEmitter()
+    }
+
     if( this.options.debug ) {
       this.consolelog = ( c, data ) => {
         console.log( c.uuid + ": " + data )
       }
+      setcalllog( this.consolelog )
     } else {
       this.consolelog = ( c, data ) => {}
     }
 
-    this.authdigest = digestauth( {
-      "proxy": true, /* 407 or 401 */
-      "passwordLookup": this.options.passwordLookup
-    } )
+    setcallmanager( this )
 
-    this.options.srf.use( "invite", this.oninvite )
+    this.options.srf.use( "invite", ( req, res, next ) => {
+      if( req.method !== "INVITE" ) return next()
+
+      callstore.getbysourceandcallid( req.source_address, req.msg.headers[ "call-id" ] )
+        .then( ( c ) => {
+          c._onauth( req, res )
+          return
+        } )
+        .catch( () => {
+          let c = new call( req, res )
+          callstore.set( c )
+          this.options.em.emit( "call", c )
+          return
+        } )
+    } )
 
     assert( undefined !== this.options.srf )
 
@@ -72,7 +89,7 @@ class callmanager {
             try {
               console.error( err )
               if( false === c.destroyed ) {
-                consolelog( c, "Unhandled exception - hanging up" )
+                this.consolelog( c, "Unhandled exception - hanging up" )
                 c.hangup( hangupcodes.SERVER_ERROR )
               }
             } catch( err ) {
@@ -101,22 +118,6 @@ class callmanager {
     return hangupcodes
   }
 
-  oninvite( req, res, next ) {
-
-    if( req.method !== "INVITE" ) return next()
-
-    callstore.getbysourceandcallid( req.source_address, req.msg.headers[ "call-id" ] )
-      .then( ( c ) => {
-        c._onauth( req, res )
-        return
-      } )
-      .catch( () => {
-        let c = new call( req, res )
-        callstore.set( c )
-        singleton.options.em.emit( "call", c )
-        return
-      } )
-  }
 }
 
 module.exports.callmanager = callmanager
