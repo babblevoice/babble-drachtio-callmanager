@@ -101,8 +101,24 @@ class callmanager {
 
     this.onnewcall = false
 
-    /* Track inbound calls. Outbound calls are not stored here */
-    this.calls = new Map()
+    this.options.em.on( "presence.subscribe.in", ( v ) => {
+      if( "application/dialog-info+xml" === v.contenttype ) {
+        callstore.getbyentity( v.entity )
+          .then( ( s ) => {
+            this.options.em.emit( "presence.dialog.out", {
+              "entity": v.entity,
+              "display": "Miss Piggy",
+              "all": s
+            } )
+          } )
+          .catch( () => {
+            this.options.em.emit( "presence.dialog.out", {
+              "entity": v.entity,
+              "display": "Miss Piggy"
+            } )
+          } )
+      }
+    } )
   }
 
   on( event, cb ) {
