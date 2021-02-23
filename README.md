@@ -134,3 +134,9 @@ cm.on( "call", async ( c ) => {
   console.log( "waited and got " + e )
 } )
 ```
+
+
+# References
+
+* SIP: Session Initiation Protocol [RFC 3261](https://tools.ietf.org/html/rfc3261)
+* The Session Initiation Protocol (SIP) Refer Method [RFC 3515](https://tools.ietf.org/html/rfc3515)
