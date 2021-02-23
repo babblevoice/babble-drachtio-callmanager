@@ -5,23 +5,35 @@ const callstore = require( "../lib/store.js" )
 
 async function teststore() {
   let dummycall1 = {
-    "source_address": "127.0.0.1",
+    "uuid": "1",
     "sip": {
-      "callid": "1234"
+      "callid": "1234",
+      "tags": {
+        "local": "",
+        "remote": "1111"
+      }
     }
   }
 
   let dummycall2 = {
-    "source_address": "127.0.0.1",
+    "uuid": "2",
     "sip": {
-      "callid": "12345"
+      "callid": "12345",
+      "tags": {
+        "local": "",
+        "remote": "1234"
+      }
     }
   }
 
   let dummycall3 = {
-    "source_address": "127.0.0.2",
+    "uuid": "3",
     "sip": {
-      "callid": "12345"
+      "callid": "12345",
+      "tags": {
+        "local": "",
+        "remote": "4321"
+      }
     }
   }
 
@@ -34,13 +46,14 @@ async function teststore() {
   callstore.set( dummycall3 )
   console.log( callstore.stats() )
 
-  await callstore.getbysourceandcallid( dummycall1.source_address, dummycall1.sip.callid )
+  await callstore.getbycallid( dummycall1.sip )
     .then( ( c ) => {
-      console.log( "Wahoo, retreived call" )
       console.log( c )
+      assert( c.uuid === "1" )
+      console.log( "Wahoo, retreived call" )
     } )
     .catch( () => {
-      assert( "Uh oh..." )
+      assert( false, "Uh oh..." )
     } )
 
   callstore.delete( dummycall1 )
@@ -48,7 +61,7 @@ async function teststore() {
   callstore.delete( dummycall3 )
   let finishstats = callstore.stats()
 
-  assert( 0 === finishstats.storebysourceaddressandcallid )
+  assert( 0 === finishstats.storebycallid )
   assert( 0 === finishstats.storebyuuid )
   assert( 0 === finishstats.storebyentity )
 

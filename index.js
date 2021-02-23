@@ -61,7 +61,15 @@ class callmanager {
     this.options.srf.use( "invite", ( req, res, next ) => {
       if( req.method !== "INVITE" ) return next()
 
-      callstore.getbysourceandcallid( req.source_address, req.msg.headers[ "call-id" ] )
+      let calldesc = {
+        "callid": req.getParsedHeader( "call-id" ),
+        "tags": {
+          "remote": req.getParsedHeader( "from" ).params.tag,
+          "local": ""
+        }
+      }
+
+      callstore.getbycallid( calldesc )
         .then( ( c ) => {
           c._onauth( req, res )
           return
