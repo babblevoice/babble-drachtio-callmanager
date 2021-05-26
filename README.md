@@ -140,3 +140,10 @@ cm.on( "call", async ( c ) => {
 
 * SIP: Session Initiation Protocol [RFC 3261](https://tools.ietf.org/html/rfc3261)
 * The Session Initiation Protocol (SIP) Refer Method [RFC 3515](https://tools.ietf.org/html/rfc3515)
+* Session Initiation Protocol (SIP) Call Control - Transfer [RFC 5589](https://tools.ietf.org/html/rfc5589)
+* Session Timers in the Session Initiation Protocol (SIP) [RFC 4028](https://tools.ietf.org/html/rfc4028)
+* Session Initiation Protocol Service Examples [RFC 5359](https://tools.ietf.org/html/rfc5359)
+
+Need to look at
+
+* A Framework for Conferencing with the Session Initiation Protocol (SIP) [RFC 4353](https://tools.ietf.org/html/rfc4353)
