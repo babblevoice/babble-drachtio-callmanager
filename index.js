@@ -22,7 +22,8 @@ const default_options = {
   "preferedcodecs": "g722 ilbc pcmu pcma",
   "transcode": true,
   "debug": false,
-  "uactimeout": 30000,
+  "uactimeout": 30000, /* timeout when calling a client */
+  "seexpire": 120000, /* session expires timeout */
   "rfc2833": true
 }
 
