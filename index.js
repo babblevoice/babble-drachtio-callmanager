@@ -24,7 +24,8 @@ const default_options = {
   "debug": false,
   "uactimeout": 30000, /* timeout when calling a client */
   "seexpire": 120000, /* session expires timeout */
-  "rfc2833": true
+  "rfc2833": true,  /* Enable RFC 2833 - DTMF */
+  "late": false  /* Late negotiation - default true */
 }
 
 
