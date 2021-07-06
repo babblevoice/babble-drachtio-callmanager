@@ -105,6 +105,20 @@ console.log( "waited and got " + e )
 
 Returns a promise which is resolved when the call object is hungup. Useful if you wish to further actions when a child call has hung up.
 
+## Events
+
+Events are published to either a global event emitter and a call specific one. This allows us to pass events back to a presences system (global) or for a call script to handle an event for that call.
+
+To subscribe to call specific events:
+
+```javascript
+cm.on( "call", async ( c ) => {
+  c.on( "call.destroyed", ( call ) => {
+    /* clean up */
+  } )
+} )
+```
+
 # Examples
 
 Authorise the call, sending ringing then answer. Once answered, echo RTP data back to the client.
