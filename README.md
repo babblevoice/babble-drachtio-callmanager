@@ -149,6 +149,9 @@ cm.on( "call", async ( c ) => {
 } )
 ```
 
+# JSDoc
+
+jsdoc -r -p lib/
 
 # References
 
