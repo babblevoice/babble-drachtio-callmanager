@@ -10,7 +10,9 @@ describe( "callmanager - store", function() {
   it( `simple store`, async function() {
     let dummycall = {
       "uuid": "1",
-      "entity": "1234@domain",
+      "entity": {
+        "uri": "1234@domain"
+      },
       "sip": {
         "callid": "1234",
         "tags": {
@@ -25,6 +27,47 @@ describe( "callmanager - store", function() {
       "storebyuuid": 1,
       "storebyentity": 1
     } )
+  } )
+
+  it( `simple store with update of local tag`, async function() {
+    let dummycall = {
+      "uuid": "1",
+      "entity": {
+        "uri": "1234@domain"
+      },
+      "sip": {
+        "callid": "1234",
+        "tags": {
+          "local": "",
+          "remote": "1111"
+        }
+      }
+    }
+    await callstore.set( dummycall )
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 1
+    } )
+
+    dummycall.sip.tags.local = "4444"
+
+    await callstore.set( dummycall )
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 1
+    } )
+
+    let searchfor = {
+      "callid": "1234",
+      "tags": {
+        "local": dummycall.sip.tags.local,
+        "remote": dummycall.sip.tags.remote
+      }
+    }
+    let call = await callstore.getbycallid( searchfor )
+    expect( call.entity.uri ).to.be.equal( "1234@domain" )
   } )
 
   it( `call set three calls add entity`, async function() {
@@ -71,7 +114,10 @@ describe( "callmanager - store", function() {
       "storebyentity": 0
     } )
 
-    dummycall1.entity = "1000@testdomain"
+    dummycall1.entity = {
+      "uri": "1000@testdomain"
+    }
+
     await callstore.set( dummycall1 )
 
     expect( await callstore.stats() ).to.deep.include( {
@@ -90,6 +136,9 @@ describe( "callmanager - store", function() {
 
     let c = await callstore.getbycallid( dummycall1.sip )
     expect( c.uuid ).to.equal( "1" )
+
+    let ce = await callstore.getbyentity( dummycall1.entity.uri ) // Map
+    expect( ce.get( dummycall1.uuid ).uuid ).to.equal( "1" )
 
     callstore.delete( dummycall1 )
     callstore.delete( dummycall2 )

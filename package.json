@@ -4,7 +4,8 @@
   "description": "Call processing to create a PBX",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --recursive --check-leaks"
+    "test": "./node_modules/mocha/bin/mocha --recursive --check-leaks",
+    "docs": "jsdoc -c jsdoc.conf.json"
   },
   "author": "Nick Knight <nick@babblevoice.com>",
   "repository": {
