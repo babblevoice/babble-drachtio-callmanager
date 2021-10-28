@@ -185,4 +185,30 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
       "a=inactive\r\n"
     )
   } )
+
+  it( `sdp member functions`, async function() {
+    let testsdp = `v=0
+o=Z 1610744131900 1 IN IP4 127.0.0.1
+s=Z
+c=IN IP4 192.168.0.100
+t=0 0
+m=audio 56858 RTP/AVP 106 9 98 101 0 8 18 3
+a=rtpmap:106 opus/48000/2
+a=fmtp:106 maxplaybackrate=16000; sprop-maxcapturerate=16000; minptime=20; cbr=1; maxaveragebitrate=20000; useinbandfec=1
+a=rtpmap:98 telephone-event/48000
+a=fmtp:98 0-16
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=rtpmap:18 G729/8000
+a=fmtp:18 annexb=no
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+
+
+    let oursdp = sdp.create( testsdp )
+
+    let a = oursdp.getaudio()
+    expect( a.port ).to.equal( 56858 )
+    expect( a.address ).to.equal( "192.168.0.100" )
+
+  } )
 } )
