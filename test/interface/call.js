@@ -175,6 +175,7 @@ describe( "call object", function() {
             },
             "destroy": () => {}
           }
+          await new Promise( ( resolve, reject ) => { setTimeout( () => resolve(), 0 ) } )
           return dialog
         },
 
