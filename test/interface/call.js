@@ -9,6 +9,26 @@ const projectrtp = require( "projectrtp" ).projectrtp
 const clearcallmanager = require( "../../lib/callmanager.js" )._clear
 const callstore = require( "../../lib/store.js" )
 
+/* some usable SDP */
+let clienttestsdp = `v=0
+o=- 1608235282228 0 IN IP4 127.0.0.1
+s=
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 20000 RTP/AVP 8 101
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+
+let servertestsdp = `v=0
+o=- 1608235282228 0 IN IP4 127.0.0.1
+s=
+c=IN IP4 192.168.0.200
+t=0 0
+m=audio 18000 RTP/AVP 8 101
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
 after( async () => {
   await projectrtp.shutdown()
@@ -133,26 +153,6 @@ describe( "call object", function() {
 
 
   it( `uas.newuac`, async function() {
-
-    let clienttestsdp = `v=0
-o=- 1608235282228 0 IN IP4 127.0.0.1
-s=
-c=IN IP4 192.168.0.141
-t=0 0
-m=audio 20000 RTP/AVP 8 101
-a=rtpmap:101 telephone-event/8000
-a=fmtp:101 0-16
-a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
-
-    let servertestsdp = `v=0
-o=- 1608235282228 0 IN IP4 127.0.0.1
-s=
-c=IN IP4 192.168.0.200
-t=0 0
-m=audio 18000 RTP/AVP 8 101
-a=rtpmap:101 telephone-event/8000
-a=fmtp:101 0-16
-a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     /* We need to create a callmanager to create a call object */
     let options = {
