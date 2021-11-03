@@ -111,7 +111,7 @@ class dialog {
   }
 
   destroy() {
-    if( this.callbacks.destroy ) this.callbacks.destroy()
+    if( this.callbacks.destroy ) return this.callbacks.destroy()
   }
 }
 
