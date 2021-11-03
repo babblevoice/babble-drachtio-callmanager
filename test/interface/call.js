@@ -225,7 +225,7 @@ describe( "call object", function() {
   it( `uas.newuac - timeout`, async function() {
 
     let srfscenario = new srf.srfscenario()
-    srfscenario.options.srf.newuactimeout = 200
+    srfscenario.options.srf.newuactimeout = 20 /* longer than our uactimeout */
 
     let call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
