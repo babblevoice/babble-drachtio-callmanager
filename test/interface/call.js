@@ -299,4 +299,78 @@ describe( "call object", function() {
     expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
 
   } )
+
+  it( `uas.newuac - new call event`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let eventhappened = false
+    srfscenario.options.em.on( "call.new", ( c ) => {
+      expect( c ).to.be.an.instanceof( call.call )
+      expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
+      eventhappened = true
+    } )
+
+    await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    expect( eventhappened ).to.be.true
+
+  } )
+
+  it( `uas.newuac - ringing event`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let eventhappened = false
+    srfscenario.options.em.on( "call.ringing", ( c ) => {
+      expect( c ).to.be.an.instanceof( call.call )
+      expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
+      eventhappened = true
+
+    } )
+
+    let c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    /* signal ringing (this would normally come from the other side) */
+    c.ring()
+
+    expect( eventhappened ).to.be.true
+
+  } )
+
+  it( `uas.newuac - answered and destroyed event`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let eventhappened = false
+    srfscenario.options.em.on( "call.answered", ( c ) => {
+      expect( c ).to.be.an.instanceof( call.call )
+      expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
+      eventhappened = true
+    } )
+
+    srfscenario.options.em.on( "call.destroyed", ( c ) => {
+      eventhappened = false
+    } )
+
+    let c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    /* signal answered (this could be called for a ivr or a bridged call) */
+    await c.answer()
+
+    expect( eventhappened ).to.be.true
+
+    await c.hangup()
+
+    expect( eventhappened ).to.be.false
+  } )
 } )
