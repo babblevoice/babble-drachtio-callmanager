@@ -142,6 +142,9 @@ describe( "callmanager", function() {
     expect( callmanager.hangupcodes ).to.have.property( "DOES_NOT_EXIST_ANYWHERE" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "UNWANTED" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "REJECTED" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "SERVICE_UNAVAILABLE" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "SERVER_TIMEOUT" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "MESSAGE_TOO_LARGE" ).that.is.a( "object" )
 
   } )
 } )
