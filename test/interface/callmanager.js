@@ -53,60 +53,6 @@ describe( "callmanager", function() {
     } )
   } )
 
-
-  it( `create new callmanager object request presence info`, async function() {
-
-    let eventemitted = false
-    await new Promise( async ( done ) => {
-
-      let req = new srf.req()
-      req.setparsedheader( "call-id", "1234" )
-      req.setparsedheader( "from", {
-        "params": {
-          "tag": "from-tag"
-        }
-      } )
-
-      let usecalled = false
-      let invitecb = false
-      let options = {
-        "srf": {
-          "use": ( method, asynccb ) => {
-            invitecb = asynccb
-            usecalled = true
-            expect( method ).to.equal( "invite" )
-
-          }
-        },
-        "userlookup": async function( user, realm ) {
-          return {
-            "display": "Miss Piggy",
-          }
-        }
-      }
-      let c = await callmanager.callmanager( options )
-      expect( usecalled ).to.be.true
-
-      let res = {}
-      let next = () => {}
-      /* present our pretend call */
-      await invitecb( req, res, next )
-
-      options.em.on( "presence.dialog.out", ( o ) => {
-        eventemitted = true
-
-        expect( o ).that.is.a( "object" )
-        expect( o ).to.have.property( "entity" ).that.is.a( "string" ).to.equal( "1000@domain" )
-        expect( o ).to.have.property( "display" ).that.is.a( "string" ).to.equal( "Miss Piggy" )
-
-        done()
-      } )
-
-      options.em.emit( "presence.subscribe.in", { "contenttype": "application/dialog-info+xml", "entity": req.entity.uri } )
-      } )
-    expect( eventemitted ).to.be.true
-  } )
-
   it( `check hangup codes on main interface`, async function() {
     expect( callmanager ).to.have.property( "hangupcodes" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "PAYMENT_REQUIRED" ).that.is.a( "object" )
