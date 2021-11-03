@@ -137,6 +137,11 @@ describe( "callmanager", function() {
     expect( callmanager.hangupcodes ).to.have.property( "SERVER_ERROR" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "FACILITY_REJECTED" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "DESTINATION_OUT_OF_ORDER" ).that.is.a( "object" )
-    expect( callmanager.hangupcodes ).to.have.property( "CALL_REJECTED" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "BUSY_EVERYWHERE" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "DECLINED" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "DOES_NOT_EXIST_ANYWHERE" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "UNWANTED" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "REJECTED" ).that.is.a( "object" )
+
   } )
 } )
