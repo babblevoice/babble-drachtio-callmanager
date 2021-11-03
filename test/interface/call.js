@@ -9,27 +9,6 @@ const projectrtp = require( "projectrtp" ).projectrtp
 const clearcallmanager = require( "../../lib/callmanager.js" )._clear
 const callstore = require( "../../lib/store.js" )
 
-/* some usable SDP */
-let clienttestsdp = `v=0
-o=- 1608235282228 0 IN IP4 127.0.0.1
-s=
-c=IN IP4 192.168.0.141
-t=0 0
-m=audio 20000 RTP/AVP 8 101
-a=rtpmap:101 telephone-event/8000
-a=fmtp:101 0-16
-a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
-
-let servertestsdp = `v=0
-o=- 1608235282228 0 IN IP4 127.0.0.1
-s=
-c=IN IP4 192.168.0.200
-t=0 0
-m=audio 18000 RTP/AVP 8 101
-a=rtpmap:101 telephone-event/8000
-a=fmtp:101 0-16
-a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
-
 after( async () => {
   await projectrtp.shutdown()
 } )
@@ -46,174 +25,115 @@ describe( "call object", function() {
     clearcallmanager()
   } )
 
-  it( `create new call uas object`, async function() {
+  it( `uas.newuac - create uas`, async function() {
 
-    /* We need to create a callmanager to create a call object */
-    let options = {
-      "srf": {
-        "use": ( method, asynccb ) => {
-          expect( method ).to.equal( "invite" )
-        }
-      }
-    }
-    await callmanager.callmanager( options )
+    let srfscenario = new srf.srfscenario()
 
-
-    let req = new srf.req()
-    req.setparsedheader( "call-id", "1234" )
-    req.setparsedheader( "from", {
-      "params": {
-        "tag": "from-tag"
-      }
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
     } )
 
-    let c = new call.call( req, {} )
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
 
-    expect( c ).to.have.property( "uuid" ).that.is.a( "string" )
-    expect( c ).to.have.property( "type" ).that.is.a( "string" ).to.equal( "uas" )
-    expect( c ).to.have.property( "state" ).that.is.a( "object" )
-    expect( c.state ).to.have.property( "trying" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "ringing" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "established" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "canceled" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.false
+    await call.hangup()
 
-    expect( c ).to.have.property( "children" ) // Set - how do you test for type?
-    expect( c ).to.have.property( "parent" ).that.is.a( "boolean" ).to.be.false
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
 
-    expect( c ).to.have.property( "uactimeout" ).that.is.a( "number" )
+    expect( call ).to.have.property( "uuid" ).that.is.a( "string" )
+    expect( call ).to.have.property( "type" ).that.is.a( "string" ).to.equal( "uas" )
+    expect( call ).to.have.property( "state" ).that.is.a( "object" )
+    expect( call.state ).to.have.property( "trying" ).that.is.a( "boolean" ).to.be.false
+    expect( call.state ).to.have.property( "ringing" ).that.is.a( "boolean" ).to.be.false
+    expect( call.state ).to.have.property( "established" ).that.is.a( "boolean" ).to.be.false
+    expect( call.state ).to.have.property( "canceled" ).that.is.a( "boolean" ).to.be.false
+    expect( call.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
 
-    expect( c ).to.have.property( "vars" ).that.is.a( "object" )
+    expect( call ).to.have.property( "children" ) // Set - how do you test?
+    expect( call ).to.have.property( "parent" ).that.is.a( "boolean" ).to.be.false
 
-    expect( c ).to.have.property( "epochs" ).that.is.a( "object" )
-    expect( c.epochs ).to.have.property( "startat" ).that.is.a( "number" )
-    expect( c.epochs ).to.have.property( "answerat" ).that.is.a( "number" )
-    expect( c.epochs ).to.have.property( "endat" ).that.is.a( "number" )
+    expect( call ).to.have.property( "vars" ).that.is.a( "object" )
 
-    expect( c ).to.have.property( "channels" ).that.is.a( "object" )
-    expect( c.channels ).to.have.property( "audio" ).to.be.false
+    expect( call ).to.have.property( "epochs" ).that.is.a( "object" )
+    expect( call.epochs ).to.have.property( "startat" ).that.is.a( "number" )
+    expect( call.epochs ).to.have.property( "answerat" ).that.is.a( "number" )
+    expect( call.epochs ).to.have.property( "endat" ).that.is.a( "number" )
+
+    expect( call ).to.have.property( "channels" ).that.is.a( "object" )
+    expect( call.channels ).to.have.property( "audio" ).to.be.false
 
     /* if uas */
-    expect( c ).to.have.property( "source" ).that.is.a( "object" )
-    expect( c.source ).to.have.property( "address" ).that.is.a( "string" )
-    expect( c.source ).to.have.property( "port" ).that.is.a( "number" )
-    expect( c.source ).to.have.property( "protocol" ).that.is.a( "string" )
-    expect( c ).to.have.property( "sip" ).that.is.a( "object" )
-    expect( c.sip ).to.have.property( "callid" ).that.is.a( "string" )
-    expect( c.sip ).to.have.property( "tags" ).that.is.a( "object" )
-    expect( c.sip.tags ).to.have.property( "remote" ).that.is.a( "string" )
-    expect( c.sip.tags ).to.have.property( "local" ).that.is.a( "string" )
+    expect( call ).to.have.property( "source" ).that.is.a( "object" )
+    expect( call.source ).to.have.property( "address" ).that.is.a( "string" )
+    expect( call.source ).to.have.property( "port" ).that.is.a( "number" )
+    expect( call.source ).to.have.property( "protocol" ).that.is.a( "string" )
+    expect( call ).to.have.property( "sip" ).that.is.a( "object" )
+    expect( call.sip ).to.have.property( "callid" ).that.is.a( "string" )
+    expect( call.sip ).to.have.property( "tags" ).that.is.a( "object" )
+    expect( call.sip.tags ).to.have.property( "remote" ).that.is.a( "string" )
+    expect( call.sip.tags ).to.have.property( "local" ).that.is.a( "string" )
 
-
-  } )
-
-  it( `create new call uac object`, async function() {
-
-    /* We need to create a callmanager to create a call object */
-    let options = {
-      "srf": {
-        "use": ( method, asynccb ) => {
-          expect( method ).to.equal( "invite" )
-        }
-      }
-    }
-    await callmanager.callmanager( options )
-
-    let c = new call.call()
-
-    expect( c ).to.have.property( "uuid" ).that.is.a( "string" )
-    expect( c ).to.have.property( "type" ).that.is.a( "string" ).to.equal( "uac" )
-    expect( c ).to.have.property( "state" ).that.is.a( "object" )
-    expect( c.state ).to.have.property( "trying" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "ringing" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "established" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "canceled" ).that.is.a( "boolean" ).to.be.false
-    expect( c.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.false
-
-    expect( c ).to.have.property( "children" ) // Set - how do you test for type?
-    expect( c ).to.have.property( "parent" ).that.is.a( "boolean" ).to.be.false
-
-    expect( c ).to.have.property( "uactimeout" ).that.is.a( "number" )
-
-    expect( c ).to.have.property( "vars" ).that.is.a( "object" )
-
-    expect( c ).to.have.property( "epochs" ).that.is.a( "object" )
-    expect( c.epochs ).to.have.property( "startat" ).that.is.a( "number" )
-    expect( c.epochs ).to.have.property( "answerat" ).that.is.a( "number" )
-    expect( c.epochs ).to.have.property( "endat" ).that.is.a( "number" )
-
-    expect( c ).to.have.property( "channels" ).that.is.a( "object" )
-    expect( c.channels ).to.have.property( "audio" ).to.be.false
-
-    /* if uac */
-    expect( c ).to.not.have.property( "source" ).that.is.a( "object" )
-    expect( c ).to.not.have.property( "sip" ).that.is.a( "object" )
+    expect( call.hangup_cause.reason ).to.equal( "NORMAL_CLEARING" )
+    expect( call.hangup_cause.sip ).to.equal( 487 )
 
   } )
 
+  it( `uas.newuac - create uac`, async function() {
 
-  it( `uas.newuac`, async function() {
+    let srfscenario = new srf.srfscenario()
 
-    /* We need to create a callmanager to create a call object */
-    let options = {
-      "srf": {
-        "use": ( method, asynccb ) => {
-          expect( method ).to.equal( "invite" )
-        },
-        "createUAC": async ( contact, options, callbacks ) => {
-
-          expect( callbacks ).to.have.property( "cbRequest" ).that.is.a( "function" )
-          expect( callbacks ).to.have.property( "cbProvisional" ).that.is.a( "function" )
-
-          let dialog = {
-            "sip": {
-              "localTag": "lkwefwiuwie",
-              "remoteTag": "wkenckw3w3"
-            },
-            "remote": {
-              "sdp": clienttestsdp
-            },
-            "destroy": () => {}
-          }
-          await new Promise( ( resolve, reject ) => { setTimeout( () => resolve(), 0 ) } )
-          return dialog
-        },
-
-        "createUAS": async( ) => {
-          let dialog = {
-            "sip": {
-              "localTag": "87dh3qhd82hd",
-              "remoteTag": "dfskjfwf3f"
-            },
-            "remote": {
-              "sdp": servertestsdp
-            },
-            "on": () => {},
-            "destroy": () => {}
-          }
-          return dialog
-        }
-      }
-    }
-    await callmanager.callmanager( options )
-
-    let req = new srf.req()
-    req.setparsedheader( "call-id", "1234" )
-    req.setparsedheader( "from", {
-      "params": {
-        "tag": "from-tag"
-      }
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
     } )
 
-    let c = new call.call( req, {} )
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
 
-    let child = await c.newuac( "1000@dummy" )
+    let child = await call.newuac( "1000@dummy" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
       "storebyuuid": 2,
       "storebyentity": 0
     } )
+
+    expect( child ).to.have.property( "uuid" ).that.is.a( "string" )
+    expect( child ).to.have.property( "type" ).that.is.a( "string" ).to.equal( "uac" )
+    expect( child ).to.have.property( "state" ).that.is.a( "object" )
+    expect( child.state ).to.have.property( "trying" ).that.is.a( "boolean" ).to.be.true
+    expect( child.state ).to.have.property( "ringing" ).that.is.a( "boolean" ).to.be.false
+    expect( child.state ).to.have.property( "established" ).that.is.a( "boolean" ).to.be.true /* becuase we awaited the newuax */
+    expect( child.state ).to.have.property( "canceled" ).that.is.a( "boolean" ).to.be.false
+    expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.false
+
+    expect( child ).to.have.property( "children" ) // Set - how do you test?
+    expect( child ).to.have.property( "parent" ).that.is.a( "object" )
+
+    expect( child ).to.have.property( "vars" ).that.is.a( "object" )
+
+    expect( child ).to.have.property( "epochs" ).that.is.a( "object" )
+    expect( child.epochs ).to.have.property( "startat" ).that.is.a( "number" )
+    expect( child.epochs ).to.have.property( "answerat" ).that.is.a( "number" )
+    expect( child.epochs ).to.have.property( "endat" ).that.is.a( "number" )
+
+    expect( child ).to.have.property( "channels" ).that.is.a( "object" )
+    expect( child.channels ).to.have.property( "audio" ).that.is.a( "object" )
+    expect( child ).to.have.property( "sip" ).that.is.a( "object" )
+
+    /* if uac */
+    expect( child ).to.not.have.property( "source" ).that.is.a( "object" )
 
     await child.hangup()
 
@@ -223,5 +143,115 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
+    expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
+
+  } )
+
+
+  it( `uas.newuac detatch from parent`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    let child = await call.newuac( "1000@dummy" )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 2,
+      "storebyuuid": 2,
+      "storebyentity": 0
+    } )
+
+    child.detach()
+    await child.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+  } )
+
+  it( `uas.newuac - 486`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+    srfscenario.oncreateUAC( () => {
+      throw { "status": 486 }
+    } )
+
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let child = await call.newuac( "1000@dummy" )
+
+    expect( child.hangup_cause.sip ).equal( 486 )
+    expect( child.hangup_cause.reason ).equal( "USER_BUSY" )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+  } )
+
+
+  it( `uas.newuac - timeout`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+    srfscenario.options.srf.newuactimeout = 200
+
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let child = await call.newuac( "1000@dummy", { "uactimeout": 10 } ) /* overide default - very short */
+
+    expect( child.destroyed ).to.be.true
+    await child.waitforhangup()
+
+    expect( child.hangup_cause.sip ).equal( 408 )
+    expect( child.hangup_cause.reason ).equal( "REQUEST_TIMEOUT" )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
   } )
 } )

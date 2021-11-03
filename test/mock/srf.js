@@ -1,24 +1,11 @@
 
+const expect = require( "chai" ).expect
+const { v4: uuidv4 } = require( "uuid" )
+const call = require( "../../lib/call.js" )
+const callmanager = require( "../../index.js" )
 
-/*
-Mock req object
-*/
-class req {
-  constructor() {
-    this.parsedheaders = {}
-    this.method = "INVITE"
-
-    this.source_address = "127.0.0.1"
-    this.source_port = 5060
-    this.protocol = "udp"
-    this.entity = {
-      "uri": "1000@domain"
-    }
-
-    this.events = {}
-
-    this.msg = {
-      "body": `v=0
+let possiblesdp = [
+  `v=0
 o=Z 1610744131900 1 IN IP4 127.0.0.1
 s=Z
 c=IN IP4 192.168.0.200
@@ -32,8 +19,46 @@ a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-16
 a=rtpmap:18 G729/8000
 a=fmtp:18 annexb=no
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
+`v=0
+o=- 1608235282228 0 IN IP4 127.0.0.1
+s=
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 20000 RTP/AVP 8 101
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+]
+
+let sdpid = 0
+
+/*
+Mock req object
+*/
+class req {
+  constructor( options ) {
+    this.parsedheaders = {}
+    this.method = "INVITE"
+
+    this.source_address = "127.0.0.1"
+    this.source_port = 5060
+    this.protocol = "udp"
+    this.entity = {
+      "uri": "1000@domain"
     }
+
+    this.options = options
+
+    this.callbacks = {}
+
+    this.msg = {
+      "body": possiblesdp[ sdpid ]
+    }
+    sdpid++
+
+    this.setparsedheader( "call-id", uuidv4() )
+    this.setparsedheader( "from", { "params": { "tag": "767sf76wew" } } )
   }
 
   getParsedHeader( header ) {
@@ -44,16 +69,147 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     this.parsedheaders[ header ] = value
   }
 
-  cancel() {
-    if( this.events.cancel ) {
-      this.events.cancel()
-    }
+  on( event, cb ) {
+    this.callbacks[ event ] = cb
   }
 
-  on( event, cb ) {
-    this.events[ event ] = cb
+  cancel() {
+    if( this.callbacks.cancel ) this.callbacks.cancel()
+  }
+}
+
+class res {
+  send( sipcode ) {
+
+  }
+}
+
+class options {
+  constructor( method = "invite" ) {
+    this.method = method
+    this.uacsdp = possiblesdp[ 0 ]
+    this.uassdp = possiblesdp[ 1 ]
+  }
+}
+
+class dialog {
+  constructor() {
+    this.remote = {
+      "sdp": ""
+    }
+
+    this.sip = {
+      "localTag": "",
+      "remoteTag": ""
+    }
+
+    this.callbacks = {}
+  }
+
+  on( ev, cb ) {
+    this.callbacks[ ev ] = cb
+  }
+
+  destroy() {
+    if( this.callbacks.destroy ) this.callbacks.destroy()
+  }
+}
+
+class srf {
+  constructor() {
+
+    this.callbacks = {
+      "createuac": false,
+      "createuas": false
+    }
+
+    this.newuactimeout = 0
+  }
+
+  use( method ) {
+    expect( method ).to.equal( "invite" )
+  }
+
+  async createUAC( contact, options, callbacks ) {
+    let _req = new req()
+
+    /* create a default */
+    callbacks.cbRequest( {}, _req )
+
+    if( this.callbacks.createuac ) {
+      return this.callbacks.createuac( contact, options, callbacks )
+    }
+
+    if( this.newuactimeout > 0 ) {
+      await new Promise( ( resolve ) => { setTimeout( () => resolve(), this.newuactimeout ) } )
+    }
+
+    return new dialog()
+  }
+
+  async createUAS( req, res, options ) {
+    if( this.callbacks.createuas ) return this.callbacks.createuas( req, res, options )
+
+    /* create a default */
+    return new dialog()
+  }
+}
+
+/*
+1st attempt is bad becuase it is too difficult to see what the test is doing which
+is bad testing.
+Our setup of the test and our mock objects need to look simple and are easily explainable.
+*/
+class srfscenario {
+  constructor() {
+    /* every scenario we restart spd */
+    sdpid = 0
+
+    this.callbacks = {
+      "trying": false,
+      "ringing": false,
+      "call": false
+    }
+
+    this.options = new options()
+    this.options.srf = new srf()
+
+    callmanager.callmanager( this.options )
+  }
+
+  ontrying( cb ) {
+    this.callbacks.trying = cb
+  }
+
+  onringing( cb ) {
+    this.callbacks.ringing = cb
+  }
+
+  oncall( cb ) {
+    this.callbacks.call = cb
+  }
+
+  oncreateUAC( cb ) {
+    this.options.srf.callbacks.createuac = cb
+  }
+
+  oncreateUAS( cb ) {
+    this.options.srf.callbacks.createuas = cb
+  }
+
+  inbound() {
+    if( this.callbacks.call ) {
+      this.req = new req( new options() )
+      this.res = new res()
+
+      let newcall = new call.call( this.req, this.res )
+      this.callbacks.call( newcall )
+    }
   }
 }
 
 
 module.exports.req = req
+module.exports.res = res
+module.exports.options = options
+module.exports.srfscenario = srfscenario
