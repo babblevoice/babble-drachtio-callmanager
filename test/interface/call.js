@@ -254,4 +254,48 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
   } )
+
+  it( `uas.newuac - child remote hangup`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    let child = await call.newuac( "1000@dummy" )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 2,
+      "storebyuuid": 2,
+      "storebyentity": 0
+    } )
+
+    expect( child.established ).to.be.true
+
+    /* mock destroy from network */
+    child._dialog.destroy()
+
+    await child.waitforhangup()
+
+    expect( child.hangup_cause.sip ).equal( 487 )
+    expect( child.hangup_cause.reason ).equal( "NORMAL_CLEARING" )
+    expect( child.hangup_cause.src ).equal( "wire" )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+    expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
+
+  } )
 } )
