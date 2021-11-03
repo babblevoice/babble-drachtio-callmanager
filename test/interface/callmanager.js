@@ -109,6 +109,6 @@ describe( "callmanager", function() {
 
   it( `check hangup codes on main interface`, async function() {
     expect( callmanager ).to.have.property( "hangupcodes" ).that.is.a( "object" )
-    expect( callmanager.hangupcodes ).to.have.property( "NO_ANSWER" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "REQUEST_TIMEOUT" ).that.is.a( "object" )
   } )
 } )
