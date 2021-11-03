@@ -239,6 +239,7 @@ describe( "call object", function() {
 
     expect( child.hangup_cause.sip ).equal( 408 )
     expect( child.hangup_cause.reason ).equal( "REQUEST_TIMEOUT" )
+    expect( child.hangup_cause.src ).equal( "us" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
