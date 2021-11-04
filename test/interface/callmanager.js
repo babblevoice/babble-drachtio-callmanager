@@ -56,6 +56,7 @@ describe( "callmanager", function() {
   it( `check hangup codes on main interface`, async function() {
     expect( callmanager ).to.have.property( "hangupcodes" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "PAYMENT_REQUIRED" ).that.is.a( "object" )
+    expect( callmanager.hangupcodes ).to.have.property( "FORBIDDEN" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "OUTGOING_CALL_BARRED" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "INCOMING_CALL_BARRED" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "UNALLOCATED_NUMBER" ).that.is.a( "object" )

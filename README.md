@@ -160,6 +160,8 @@ jsdoc -r -p lib/
 * Session Initiation Protocol (SIP) Call Control - Transfer [RFC 5589](https://tools.ietf.org/html/rfc5589)
 * Session Timers in the Session Initiation Protocol (SIP) [RFC 4028](https://tools.ietf.org/html/rfc4028)
 * Session Initiation Protocol Service Examples [RFC 5359](https://tools.ietf.org/html/rfc5359)
+* HTTP Authentication: Basic and Digest Access Authentication [RFC 2617](https://tools.ietf.org/html/rfc2617)
+* SIP Digest examples [draft-smith-sipping-auth-examples-01](https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01)
 
 Need to look at
 

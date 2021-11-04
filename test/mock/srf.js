@@ -39,11 +39,13 @@ Mock req object
 class req {
   constructor( options ) {
     this.parsedheaders = {}
-    this.method = "INVITE"
+    this.headers = {}
 
+    this.source = "network"
     this.source_address = "127.0.0.1"
     this.source_port = 5060
     this.protocol = "udp"
+    this.receivedOn = "192.168.0.141:9997"
     this.entity = {
       "uri": "1000@domain"
     }
@@ -53,20 +55,34 @@ class req {
     this.callbacks = {}
 
     this.msg = {
-      "body": possiblesdp[ sdpid ]
+      "body": possiblesdp[ sdpid ],
+      method: "INVITE"
     }
     sdpid++
 
     this.setparsedheader( "call-id", uuidv4() )
-    this.setparsedheader( "from", { "params": { "tag": "767sf76wew" } } )
+    this.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:1000@dummy.com", "host": "dummy.com" } )
   }
 
+  /* case insensative */
   getParsedHeader( header ) {
-    return this.parsedheaders[ header ]
+    return this.parsedheaders[ header.toLowerCase() ]
   }
 
   setparsedheader( header, value ) {
-    this.parsedheaders[ header ] = value
+    this.parsedheaders[ header.toLowerCase() ] = value
+  }
+
+  get( header ) {
+    return this.headers[ header.toLowerCase() ]
+  }
+
+  set( header, value ) {
+    this.headers[ header.toLowerCase() ] = value
+  }
+
+  has( header ) {
+    return header in this.headers || header in this.parsedheaders
   }
 
   on( event, cb ) {
@@ -79,8 +95,20 @@ class req {
 }
 
 class res {
-  send( sipcode ) {
+  constructor() {
+    this.callbacks = {
+      "onsend": false
+    }
+  }
 
+  send( sipcode, msg ) {
+    if( this.callbacks.onsend ) {
+      this.callbacks.onsend( sipcode, msg )
+    }
+  }
+
+  onsend( cb ) {
+    this.callbacks.onsend = cb
   }
 }
 
@@ -197,6 +225,9 @@ class srfscenario {
     this.options.srf.callbacks.createuas = cb
   }
 
+  /*
+    simulate a new inbound call
+  */
   inbound() {
     if( this.callbacks.call ) {
       this.req = new req( new options() )

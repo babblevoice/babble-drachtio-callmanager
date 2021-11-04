@@ -373,4 +373,141 @@ describe( "call object", function() {
 
     expect( eventhappened ).to.be.false
   } )
+
+  it( `uas.newuac - authed event`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let eventhappened = false
+    srfscenario.options.em.on( "call.authed", ( c ) => {
+      expect( c ).to.be.an.instanceof( call.call )
+      expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
+      eventhappened = true
+    } )
+
+    srfscenario.options.userlookup = async ( username, realm ) => {
+      return {
+        "secret": "zanzibar",
+        "username": username,
+        "realm": realm
+      }
+    }
+
+    let c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => {
+
+        let onsendcount = 0
+        /* mock -
+        auth example from https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01 3.3*/
+        call._req.msg.uri = "sip:bob@biloxi.com"
+        call._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
+        call._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+        call._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
+        call._res.onsend( ( code, msg ) => {
+
+          if( 0 == onsendcount ) {
+            let request = msg.headers[ "Proxy-Authenticate" ]
+
+            /* The items a uac will add */
+            request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
+            request += ` uri="sip:bob@biloxi.com",`
+            request += ` response="89eb0059246c02b2f6ee02c7961d5ea3"`
+
+            srfscenario.req.set( "Proxy-Authorization", request )
+
+
+            call._onauth( srfscenario.req, srfscenario.res )
+
+          } else if( 1 == onsendcount ) {
+            resolve( call )
+          }
+
+          onsendcount++
+        } )
+
+        /* signal answered (this could be called for a ivr or a bridged call) */
+        await call.auth()
+        await call.hangup()
+      } )
+      srfscenario.inbound()
+    } )
+
+    expect( eventhappened ).to.be.true
+    expect( c.hangup_cause.reason ).to.equal( "NORMAL_CLEARING" )
+    expect( c.hangup_cause.src ).to.equal( "us" )
+    expect( c.state.destroyed ).to.equal( true )
+    expect( c.state.authed ).to.equal( true )
+    expect( c.entity.username ).to.equal( "bob" )
+    expect( c.entity.realm ).to.equal( "biloxi.com" )
+    expect( c.entity.uri ).to.equal( "bob@biloxi.com" )
+
+  } )
+
+  it( `uas.newuac - auth failed`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let eventhappened = false
+    srfscenario.options.em.on( "call.authed.failed", ( c ) => {
+      expect( c ).to.be.an.instanceof( call.call )
+      expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
+      eventhappened = true
+    } )
+
+    srfscenario.options.userlookup = async ( username, realm ) => {
+      return {
+        "secret": "zanzibar",
+        "username": username,
+        "realm": realm
+      }
+    }
+
+    let c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => {
+
+        let onsendcount = 0
+        /* mock -
+        auth example from https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01 3.3*/
+        call._req.msg.uri = "sip:bob@biloxi.com"
+        call._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
+        call._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+        call._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
+        call._res.onsend( ( code, msg ) => {
+
+          if( 0 == onsendcount ) {
+            let request = msg.headers[ "Proxy-Authenticate" ]
+
+            /* The items a uac will add */
+            request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
+            request += ` uri="sip:bob@biloxi.com",`
+            request += ` response="89eb0059246c02b2f6ee02c7961d5ea"`
+
+            srfscenario.req.set( "Proxy-Authorization", request )
+
+
+            call._onauth( srfscenario.req, srfscenario.res )
+
+          } else if( 1 == onsendcount ) {
+            resolve( call )
+          }
+
+          onsendcount++
+        } )
+
+        /* signal answered (this could be called for a ivr or a bridged call) */
+        await call.auth()
+      } )
+      srfscenario.inbound()
+    } )
+
+    expect( eventhappened ).to.be.true
+    expect( c.hangup_cause.reason ).to.equal( "FORBIDDEN" )
+    expect( c.hangup_cause.src ).to.equal( "us" )
+    expect( c.state.destroyed ).to.equal( true )
+    expect( c.state.authed ).to.equal( false )
+
+
+  } )
 } )
