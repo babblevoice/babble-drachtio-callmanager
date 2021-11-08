@@ -107,7 +107,7 @@ class req {
     this.callbacks = {}
 
     this.msg = {
-      "body": possiblesdp[ sdpid ],
+      "body": possiblesdp[ sdpid % possiblesdp.length ],
       method: "INVITE"
     }
     sdpid++
@@ -173,9 +173,14 @@ class options {
 }
 
 class dialog {
-  constructor() {
+  constructor( req ) {
+
+    let sdp = ""
+    if( req ) {
+      sdp = req.msg.body
+    }
     this.remote = {
-      "sdp": ""
+      "sdp": sdp
     }
 
     this.sip = {
@@ -188,6 +193,10 @@ class dialog {
 
   on( ev, cb ) {
     this.callbacks[ ev ] = cb
+  }
+
+  ack() {
+    return this
   }
 
   destroy() {
@@ -224,7 +233,7 @@ class srf {
       await new Promise( ( resolve ) => { setTimeout( () => resolve(), this.newuactimeout ) } )
     }
 
-    return new dialog()
+    return new dialog( _req )
   }
 
   async createUAS( req, res, options ) {

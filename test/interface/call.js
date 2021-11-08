@@ -21,6 +21,10 @@ before( async () => {
 
 describe( "call object", function() {
 
+  afterEach( function() {
+    clearcallmanager()
+  } )
+
   beforeEach( function() {
     clearcallmanager()
   } )
