@@ -28,6 +28,26 @@ t=0 0
 m=audio 20000 RTP/AVP 8 101
 a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-16
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
+`v=0
+o=- 1608235282228 0 IN IP4 127.0.0.1
+s=
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 20000 RTP/AVP 0 101
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
+`v=0
+o=- 1608235282228 0 IN IP4 127.0.0.1
+s=
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 20000 RTP/AVP 97 101
+a=rtpmap:97 ilbc/8000
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=fmtp:97 mode=20
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 ]
 
@@ -242,5 +262,6 @@ class srfscenario {
 
 module.exports.req = req
 module.exports.res = res
+module.exports.dialog = dialog
 module.exports.options = options
 module.exports.srfscenario = srfscenario
