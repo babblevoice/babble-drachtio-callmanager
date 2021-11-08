@@ -130,7 +130,7 @@ cm.on( "call", async ( c ) => {
   call.ring()
   await call.answer()
 
-  call.audio().echo()
+  call.channels.audio.echo()
 } )
 ```
 
@@ -142,7 +142,7 @@ cm.on( "call", async ( c ) => {
 
   await call.answer()
 
-  call.audio.play( { "files": [ { "wav": "pleasedialoneforsalesandtwofortech.wav" } ] } )
+  call.channels.audio.play( { "files": [ { "wav": "pleasedialoneforsalesandtwofortech.wav" } ] } )
 
   var e = await call.waitforevents( /[0-1]/ )
   console.log( "waited and got " + e )
