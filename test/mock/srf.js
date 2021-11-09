@@ -112,6 +112,8 @@ class req {
     }
     sdpid++
 
+    this.set( "cseq", "1" )
+
     this.setparsedheader( "call-id", uuidv4() )
     this.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:1000@dummy.com", "host": "dummy.com" } )
   }
@@ -134,7 +136,7 @@ class req {
   }
 
   has( header ) {
-    return header in this.headers || header in this.parsedheaders
+    return header.toLowerCase() in this.headers || header.toLowerCase() in this.parsedheaders
   }
 
   on( event, cb ) {
@@ -201,6 +203,10 @@ class dialog {
 
   destroy() {
     if( this.callbacks.destroy ) return this.callbacks.destroy()
+  }
+
+  request( options ) {
+    return this
   }
 }
 
