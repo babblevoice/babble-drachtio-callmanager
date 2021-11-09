@@ -32,7 +32,7 @@ describe( "events", function() {
     events = await call.waitforevents( /[0-9][0-9]\*/ )
     expect( events ).to.equal( "23*" )
 
-    call.hangup()
+    await call.hangup()
 
   } )
 
