@@ -399,43 +399,42 @@ describe( "call object", function() {
 
     let c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => {
-
-        let onsendcount = 0
-        /* mock -
-        auth example from https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01 3.3*/
-        call._req.msg.uri = "sip:bob@biloxi.com"
-        call._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
-        call._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
-        call._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
-
-        call._res.onsend( ( code, msg ) => {
-
-          if( 0 == onsendcount ) {
-            let request = msg.headers[ "Proxy-Authenticate" ]
-
-            /* The items a uac will add */
-            request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
-            request += ` uri="sip:bob@biloxi.com",`
-            request += ` response="89eb0059246c02b2f6ee02c7961d5ea3"`
-
-            srfscenario.req.set( "Proxy-Authorization", request )
-
-
-            call._onauth( srfscenario.req, srfscenario.res )
-
-          } else if( 1 == onsendcount ) {
-            resolve( call )
-          }
-
-          onsendcount++
-        } )
-
-        /* signal answered (this could be called for a ivr or a bridged call) */
-        await call.auth()
-        await call.hangup()
+        resolve( call )
       } )
       srfscenario.inbound()
     } )
+
+    let onsendcount = 0
+    /* mock -
+    auth example from https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01 3.3*/
+    c._req.msg.uri = "sip:bob@biloxi.com"
+    c._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
+    c._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+    c._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
+    c._res.onsend( ( code, msg ) => {
+
+      if( 0 == onsendcount ) {
+        let request = msg.headers[ "Proxy-Authenticate" ]
+
+        /* The items a uac will add */
+        request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
+        request += ` uri="sip:bob@biloxi.com",`
+        request += ` response="89eb0059246c02b2f6ee02c7961d5ea3"`
+
+        srfscenario.req.set( "Proxy-Authorization", request )
+
+
+        c._onauth( srfscenario.req, srfscenario.res )
+
+      }
+
+      onsendcount++
+    } )
+
+    /* signal answered (this could be called for a ivr or a bridged call) */
+    await c.auth()
+    await c.hangup()
 
     expect( eventhappened ).to.be.true
     expect( c.hangup_cause.reason ).to.equal( "NORMAL_CLEARING" )
