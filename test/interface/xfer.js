@@ -80,6 +80,7 @@ describe( "xfer", function() {
 
     expect( sipcodesent ).to.equal( 202 )
 
+    expect( child.state.refered ).to.be.true
     /* a final hangup outside of the xfer */
     child.hangup()
 
@@ -144,6 +145,7 @@ describe( "xfer", function() {
     expect( b_2.hangup_cause.src ).equal( "wire" )
     expect( b_2.hangup_cause.reason ).equal( "ATTENDED_TRANSFER" )
 
+    expect( a_1.state.refered ).to.be.true
     expect( a_1.hangup_cause.sip ).equal( 487 )
     expect( a_1.hangup_cause.src ).equal( "us" )
     expect( a_1.hangup_cause.reason ).equal( "NORMAL_CLEARING" )
