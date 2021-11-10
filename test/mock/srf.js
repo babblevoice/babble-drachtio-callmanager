@@ -1,6 +1,7 @@
 
 const expect = require( "chai" ).expect
 const { v4: uuidv4 } = require( "uuid" )
+const crypto = require( "crypto" )
 const call = require( "../../lib/call.js" )
 const callmanager = require( "../../index.js" )
 
@@ -112,10 +113,10 @@ class req {
     }
     sdpid++
 
-    this.set( "cseq", "1" )
+    this.set( "cseq", "1 INVITE" )
 
     this.setparsedheader( "call-id", uuidv4() )
-    this.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:1000@dummy.com", "host": "dummy.com" } )
+    this.setparsedheader( "from", { "params": { "tag": crypto.randomBytes( 5 ).toString( "hex" ) }, "uri": "sip:1000@dummy.com", "host": "dummy.com" } )
   }
 
   /* case insensative */
@@ -143,6 +144,7 @@ class req {
     this.callbacks[ event ] = cb
   }
 
+  /* returns undefined - checked https://drachtio.org/api#sip-request-cancel */
   cancel() {
     if( this.callbacks.cancel ) this.callbacks.cancel()
   }
@@ -155,9 +157,15 @@ class res {
     }
   }
 
-  send( sipcode, msg ) {
+  /* returns undefined - https://drachtio.org/api#sip-request */
+  send( sipcode, msg, o, cb ) {
     if( this.callbacks.onsend ) {
       this.callbacks.onsend( sipcode, msg )
+    }
+
+    if( cb ) {
+      cb()
+      return this
     }
   }
 
@@ -185,9 +193,15 @@ class dialog {
       "sdp": sdp
     }
 
+    let fromtag = ""
+    if( req ) {
+      let from = req.getParsedHeader( "from" )
+      fromtag = from.params.tag
+    }
+
     this.sip = {
-      "localTag": "",
-      "remoteTag": ""
+      "localTag": crypto.randomBytes( 5 ).toString( "hex" ),
+      "remoteTag": fromtag
     }
 
     this.callbacks = {}
@@ -201,12 +215,50 @@ class dialog {
     return this
   }
 
-  destroy() {
-    if( this.callbacks.destroy ) return this.callbacks.destroy()
+  destroy( cb ) {
+    if( this.callbacks.destroy ) this.callbacks.destroy()
+
+    if( cb ) {
+      cb()
+      return this
+    }
+
+    return new Promise( ( resolve ) => {
+      resolve( this )
+    } )
   }
 
-  request( options ) {
-    return this
+  /*
+  Confirmed - srf.dialog.request returns a promise
+  https://drachtio.org/docs/api#Dialog+request (only if no call back is supplied though)
+  */
+  request( options, cb ) {
+
+    if( this.callbacks.request ) this.callbacks.request( options )
+
+    if( cb ) {
+      cb()
+      return this
+    }
+
+    return new Promise( ( resolve ) => {
+      resolve( this )
+    } )
+  }
+
+  /*
+  Same as request - promise or not depending on callback supplied or not
+  https://drachtio.org/docs/api#Dialog+modify
+  */
+  modify( options, cb ) {
+    if( cb ) {
+      cb()
+      return this
+    }
+
+    return new Promise( ( resolve ) => {
+      resolve( this )
+    } )
   }
 }
 
