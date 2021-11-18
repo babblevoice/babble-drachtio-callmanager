@@ -116,7 +116,14 @@ class req {
     this.set( "cseq", "1 INVITE" )
 
     this.setparsedheader( "call-id", uuidv4() )
-    this.setparsedheader( "from", { "params": { "tag": crypto.randomBytes( 5 ).toString( "hex" ) }, "uri": "sip:1000@dummy.com", "host": "dummy.com" } )
+
+    /* copied object structure from srf */
+    this.setparsedheader( "from", {
+    "uri": "sip:1000@dummy.com;transport=UDP",
+    "params": {
+        "tag": crypto.randomBytes( 5 ).toString( "hex" )
+      }
+    } )
   }
 
   /* case insensative */
