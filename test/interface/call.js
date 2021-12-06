@@ -310,7 +310,7 @@ describe( "call object", function() {
 
     let eventhappened = false
     srfscenario.options.em.on( "call.new", ( c ) => {
-      expect( c ).to.be.an.instanceof( call.call )
+      expect( c ).to.be.an.instanceof( call )
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
     } )
@@ -330,7 +330,7 @@ describe( "call object", function() {
 
     let eventhappened = false
     srfscenario.options.em.on( "call.ringing", ( c ) => {
-      expect( c ).to.be.an.instanceof( call.call )
+      expect( c ).to.be.an.instanceof( call )
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
 
@@ -354,7 +354,7 @@ describe( "call object", function() {
 
     let eventhappened = false
     srfscenario.options.em.on( "call.answered", ( c ) => {
-      expect( c ).to.be.an.instanceof( call.call )
+      expect( c ).to.be.an.instanceof( call )
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
     } )
@@ -384,7 +384,7 @@ describe( "call object", function() {
 
     let eventhappened = false
     srfscenario.options.em.on( "call.authed", ( c ) => {
-      expect( c ).to.be.an.instanceof( call.call )
+      expect( c ).to.be.an.instanceof( call )
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
     } )
@@ -453,7 +453,7 @@ describe( "call object", function() {
 
     let eventhappened = false
     srfscenario.options.em.on( "call.authed.failed", ( c ) => {
-      expect( c ).to.be.an.instanceof( call.call )
+      expect( c ).to.be.an.instanceof( call )
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
     } )
