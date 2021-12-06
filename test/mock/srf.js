@@ -359,7 +359,7 @@ class srfscenario {
       this.req = new req( new options() )
       this.res = new res()
 
-      let newcall = new call.call( this.req, this.res )
+      let newcall = call.call.frominvite( this.req, this.res )
       this.callbacks.call( newcall )
     }
   }

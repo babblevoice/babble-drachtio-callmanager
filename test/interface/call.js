@@ -105,7 +105,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( "1000@dummy" )
+    let child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -167,7 +167,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( "1000@dummy" )
+    let child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -205,7 +205,7 @@ describe( "call object", function() {
       srfscenario.inbound()
     } )
 
-    let child = await call.newuac( "1000@dummy" )
+    let child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( child.hangup_cause.sip ).equal( 486 )
     expect( child.hangup_cause.reason ).equal( "USER_BUSY" )
@@ -236,7 +236,7 @@ describe( "call object", function() {
       srfscenario.inbound()
     } )
 
-    let child = await call.newuac( "1000@dummy", { "uactimeout": 10 } ) /* overide default - very short */
+    let child = await call.newuac( { "contact": "1000@dummy", "uactimeout": 10 } ) /* overide default - very short */
 
     expect( child.destroyed ).to.be.true
     await child.waitforhangup()
@@ -275,7 +275,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( "1000@dummy" )
+    let child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -510,7 +510,5 @@ describe( "call object", function() {
     expect( c.hangup_cause.src ).to.equal( "us" )
     expect( c.state.destroyed ).to.equal( true )
     expect( c.state.authed ).to.equal( false )
-
-
   } )
 } )

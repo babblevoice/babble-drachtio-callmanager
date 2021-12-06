@@ -68,7 +68,7 @@ describe( "xfer", function() {
     } )
 
     await call.answer()
-    let child = await call.newuac( "1000@dummy" )
+    let child = await call.newuac( { "contact": "1000@dummy" } )
 
     call._dialog.callbacks.refer( req, res )
 
@@ -95,14 +95,14 @@ describe( "xfer", function() {
       srfscenario.inbound()
     } )
 
-    let a_1 = await b_1.newuac( "1000@dummy" )
+    let a_1 = await b_1.newuac( { "contact": "1000@dummy" } )
 
     let b_2 = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
-    let c_1 = await b_2.newuac( "1001@dummy" )
+    let c_1 = await b_2.newuac( { "contact": "1001@dummy" } )
 
     /* now we refer b_2 to b_1 */
     let req = new srf.req( new srf.options() )

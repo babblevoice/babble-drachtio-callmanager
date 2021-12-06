@@ -41,7 +41,7 @@ describe( "uas.newuac - late", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( "1000@dummy", { "late": true } )
+    let child = await call.newuac( { "contact": "1000@dummy", "late": true } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -103,7 +103,7 @@ describe( "uas.newuac - late", function() {
 
     await call.answer()
 
-    let child = await call.newuac( "1000@dummy", { "late": true } )
+    let child = await call.newuac( { "contact": "1000@dummy", "late": true } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
