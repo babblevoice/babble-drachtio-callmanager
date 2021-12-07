@@ -151,6 +151,60 @@ describe( "call object", function() {
 
   } )
 
+  it( `uas.newuac - create uac by entity no registrar`, async function() {
+    let srfscenario = new srf.srfscenario()
+
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+    expect( child ).to.be.false
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    await call.hangup()
+  } )
+
+  it( `uas.newuac - create uac by entity with registrar`, async function() {
+    let srfscenario = new srf.srfscenario( true )
+    srfscenario.addmockentity( "1000@dummy", {
+      "username": "1000",
+      "realm": "dummy.com",
+      "display": "",
+      "uri": "1000@dummy.com",
+      "contacts": [ "sip:1000@dummy.com:5060", "sip:1000@dummy.com:5060;transport=blah" ]
+    } )
+
+    let call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 2,
+      "storebyuuid": 2,
+      "storebyentity": 1
+    } )
+
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+    expect( srfscenario.options.srf._createuaccount ).to.equal( 2 )
+
+  } )
 
   it( `uas.newuac detatch from parent`, async function() {
 

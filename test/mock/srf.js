@@ -278,6 +278,8 @@ class srf {
     }
 
     this.newuactimeout = 0
+
+    this._createuaccount = 0
   }
 
   use( method ) {
@@ -285,6 +287,7 @@ class srf {
   }
 
   async createUAC( contact, options, callbacks ) {
+    this._createuaccount++
     let _req = new req()
 
     /* create a default */
@@ -315,7 +318,7 @@ is bad testing.
 Our setup of the test and our mock objects need to look simple and are easily explainable.
 */
 class srfscenario {
-  constructor() {
+  constructor( reg = false ) {
     /* every scenario we restart spd */
     sdpid = 0
 
@@ -328,7 +331,21 @@ class srfscenario {
     this.options = new options()
     this.options.srf = new srf()
 
+    this._entities = {}
+
+    if( reg ) {
+      this.options.registrar = {
+        "contacts": async ( entity ) => {
+          return this._entities[ entity.uri ]
+        }
+      }
+    }
+
     callmanager.callmanager( this.options )
+  }
+
+  addmockentity( entity, contactinfo ) {
+    this._entities[ entity ] = contactinfo 
   }
 
   ontrying( cb ) {

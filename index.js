@@ -14,8 +14,8 @@ const default_options = {
 }
 
 module.exports.callmanager = async( options ) => {
-  Object.assign( options, default_options )
-  return callmanager.callmanager( options )
+  Object.assign( default_options, options )
+  return callmanager.callmanager( default_options )
 }
 
 module.exports.hangupcodes = callmanager.hangupcodes
