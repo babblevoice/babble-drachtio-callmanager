@@ -224,6 +224,60 @@ describe( "call object", function() {
 
   } )
 
+  it( `uas.newuac - create uac by entity with registrar but hit max limit`, async function() {
+
+    let options = {
+      "registrar": {
+        "contacts": async ( entity ) => {
+          return {
+            "username": "1000",
+            "realm": "dummy.com",
+            "display": "Bob",
+            "uri": "1000@dummy.com",
+            "contacts": [ "sip:1000@dummy.com:5060", "sip:1000@dummy.com:5060;transport=blah" ]
+          }
+        }
+      }
+    }
+
+    let srfscenario = new srf.srfscenario( options )
+
+    let inboundcall = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let child = await inboundcall.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
+    let child2 = await call.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 2,
+      "storebyuuid": 2,
+      "storebyentity": 1
+    } )
+
+    let child3 = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 3,
+      "storebyuuid": 3,
+      "storebyentity": 1
+    } )
+
+    await child3.hangup()
+    await inboundcall.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+    expect( srfscenario.options.srf._createuaccount ).to.equal( 4 )
+    expect( child2 ).to.be.false
+
+  } )
+
   it( `uas.newuac detatch from parent`, async function() {
 
     let srfscenario = new srf.srfscenario()
@@ -605,7 +659,7 @@ describe( "call object", function() {
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:00000000@localhost.localdomain>` )
+    expect( createuacoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:0000000000@localhost.localdomain>` )
     expect( createuacoptions.noAck ).to.be.true
   } )
 
