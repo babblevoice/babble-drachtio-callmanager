@@ -2,6 +2,8 @@
 const expect = require( "chai" ).expect
 const { v4: uuidv4 } = require( "uuid" )
 const crypto = require( "crypto" )
+const events = require( "events" )
+
 const call = require( "../../lib/call.js" )
 const callmanager = require( "../../index.js" )
 
@@ -318,7 +320,7 @@ is bad testing.
 Our setup of the test and our mock objects need to look simple and are easily explainable.
 */
 class srfscenario {
-  constructor( reg = false ) {
+  constructor( options ) {
     /* every scenario we restart spd */
     sdpid = 0
 
@@ -328,24 +330,18 @@ class srfscenario {
       "call": false
     }
 
-    this.options = new options()
-    this.options.srf = new srf()
-
-    this._entities = {}
-
-    if( reg ) {
-      this.options.registrar = {
-        "contacts": async ( entity ) => {
-          return this._entities[ entity.uri ]
-        }
-      }
+    let defaultoptions = {
+      "method": "invite",
+      "uacsdp": possiblesdp[ 0 ],
+      "uassdp": possiblesdp[ 1 ]
     }
 
-    callmanager.callmanager( this.options )
-  }
+    this.options = { ...defaultoptions, ...options }
+    this.options.srf = new srf()
 
-  addmockentity( entity, contactinfo ) {
-    this._entities[ entity ] = contactinfo 
+    this.options.em = new events.EventEmitter()
+
+    callmanager.callmanager( this.options )
   }
 
   ontrying( cb ) {

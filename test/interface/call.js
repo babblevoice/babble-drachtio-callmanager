@@ -172,14 +172,22 @@ describe( "call object", function() {
   } )
 
   it( `uas.newuac - create uac by entity with registrar`, async function() {
-    let srfscenario = new srf.srfscenario( true )
-    srfscenario.addmockentity( "1000@dummy", {
-      "username": "1000",
-      "realm": "dummy.com",
-      "display": "",
-      "uri": "1000@dummy.com",
-      "contacts": [ "sip:1000@dummy.com:5060", "sip:1000@dummy.com:5060;transport=blah" ]
-    } )
+
+    let options = {
+      "registrar": {
+        "contacts": async ( entity ) => {
+          return {
+            "username": "1000",
+            "realm": "dummy.com",
+            "display": "Bob",
+            "uri": "1000@dummy.com",
+            "contacts": [ "sip:1000@dummy.com:5060", "sip:1000@dummy.com:5060;transport=blah" ]
+          }
+        }
+      }
+    }
+
+    let srfscenario = new srf.srfscenario( options )
 
     let call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
@@ -193,6 +201,16 @@ describe( "call object", function() {
       "storebyuuid": 2,
       "storebyentity": 1
     } )
+
+    /* mock */
+    let requestoptions = false
+    child._req.set( "ALLOW", "INVITE, UPDATE, OPTIONS" )
+    child._dialog.on( "request", ( options ) => requestoptions = options )
+
+    child.update()
+
+    expect( requestoptions.method ).to.equal( "update" )
+    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:1000@dummy.com>` )
 
     await call.hangup()
 
@@ -434,7 +452,17 @@ describe( "call object", function() {
 
   it( `uas.newuac - authed event`, async function() {
 
-    let srfscenario = new srf.srfscenario()
+    let options = {
+      "userlookup": async ( username, realm ) => {
+        return {
+          "secret": "zanzibar",
+          "username": username,
+          "realm": realm
+        }
+      }
+    }
+
+    let srfscenario = new srf.srfscenario( options )
 
     let eventhappened = false
     srfscenario.options.em.on( "call.authed", ( c ) => {
@@ -442,14 +470,6 @@ describe( "call object", function() {
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
     } )
-
-    srfscenario.options.userlookup = async ( username, realm ) => {
-      return {
-        "secret": "zanzibar",
-        "username": username,
-        "realm": realm
-      }
-    }
 
     let c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => {
@@ -503,7 +523,17 @@ describe( "call object", function() {
 
   it( `uas.newuac - auth failed`, async function() {
 
-    let srfscenario = new srf.srfscenario()
+    let options = {
+      "userlookup": async ( username, realm ) => {
+        return {
+          "secret": "zanzibar",
+          "username": username,
+          "realm": realm
+        }
+      }
+    }
+
+    let srfscenario = new srf.srfscenario( options )
 
     let eventhappened = false
     srfscenario.options.em.on( "call.authed.failed", ( c ) => {
@@ -511,14 +541,6 @@ describe( "call object", function() {
       expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
       eventhappened = true
     } )
-
-    srfscenario.options.userlookup = async ( username, realm ) => {
-      return {
-        "secret": "zanzibar",
-        "username": username,
-        "realm": realm
-      }
-    }
 
     let c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => {
@@ -564,5 +586,115 @@ describe( "call object", function() {
     expect( c.hangup_cause.src ).to.equal( "us" )
     expect( c.state.destroyed ).to.equal( true )
     expect( c.state.authed ).to.equal( false )
+  } )
+
+  it( `uas.newuac - caller id set correctly`, async function() {
+
+    let srfscenario = new srf.srfscenario( {} )
+
+    let createuacoptions
+    srfscenario.oncreateUAC( ( contact, options, callbacks ) => {
+      createuacoptions = options
+
+    } )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    await call.newuac( options, { "early": ( c ) => c.hangup() } )
+
+    expect( createuacoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:00000000@localhost.localdomain>` )
+    expect( createuacoptions.noAck ).to.be.true
+  } )
+
+  it( `uas.newuac - early callback is called`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let earlycallbackcalled = false
+    let c = await call.newuac( options, { "early": ( c ) => earlycallbackcalled = true } )
+
+    c.hangup()
+
+    expect( earlycallbackcalled ).to.be.true
+  } )
+
+  it( `uas.newuac - confirmed callback is called`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let earlycallbackcalled = false
+    let c = await call.newuac( options, { "confirm": ( c ) => earlycallbackcalled = true } )
+
+    c.hangup()
+
+    expect( earlycallbackcalled ).to.be.true
+  } )
+
+  it( `uas.newuac - simple update`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let earlycallbackcalled = false
+    let c = await call.newuac( options )
+
+    /* mock */
+    c._req.set( "ALLOW", "INVITE, UPDATE, OPTIONS" )
+    let requestoptions
+    c._dialog.on( "request", ( options ) => requestoptions = options )
+
+    await c.update( { "remote": {
+      "display": "Kermit",
+      "realm": "muppetshow.com",
+      "username": "kermy"
+    } } )
+
+    c.hangup()
+
+    expect( requestoptions.method ).to.equal( "update" )
+    expect( requestoptions.body ).to.be.a( "string" )
+    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"Kermit" <sip:kermy@muppetshow.com>` )
+
+  } )
+
+  it( `uas.newuac - simple update - but don't allow as not in allow`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let earlycallbackcalled = false
+    let c = await call.newuac( options )
+
+    /* mock */
+    let requestoptions = false
+    c._dialog.on( "request", ( options ) => requestoptions = options )
+
+    let returnedval = await c.update( { "remote": {
+      "display": "Kermit",
+      "realm": "muppetshow.com",
+      "username": "kermy"
+    } } )
+
+    c.hangup()
+
+    expect( returnedval ).to.be.false
+    expect( requestoptions ).to.be.false
   } )
 } )
