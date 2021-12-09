@@ -204,6 +204,7 @@ describe( "call object", function() {
 
     /* mock */
     let requestoptions = false
+
     child._req.set( "ALLOW", "INVITE, UPDATE, OPTIONS" )
     child._dialog.on( "request", ( options ) => requestoptions = options )
 
@@ -331,10 +332,15 @@ describe( "call object", function() {
       srfscenario.inbound()
     } )
 
-    let child = await call.newuac( { "contact": "1000@dummy" } )
+    let children = [] 
+    let child = await call.newuac( { "contact": "1000@dummy" }, { "early": ( c ) => {
+        children.push( c )
+      }
+    } )
 
-    expect( child.hangup_cause.sip ).equal( 486 )
-    expect( child.hangup_cause.reason ).equal( "USER_BUSY" )
+    expect( children.length ).to.equal( 1 )
+    expect( children[ 0 ].hangup_cause.sip ).equal( 486 )
+    expect( children[ 0 ].hangup_cause.reason ).equal( "USER_BUSY" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
@@ -362,14 +368,19 @@ describe( "call object", function() {
       srfscenario.inbound()
     } )
 
-    let child = await call.newuac( { "contact": "1000@dummy", "uactimeout": 10 } ) /* overide default - very short */
+    let children = [] 
+    let child = await call.newuac( { "contact": "1000@dummy", "uactimeout": 10 }, { "early": ( c ) => {
+        children.push( c )
+      }
+    } ) /* overide default - very short */
 
-    expect( child.destroyed ).to.be.true
-    await child.waitforhangup()
+    expect( child ).to.be.false
+    expect( children.length ).to.equal( 1 )
+    expect( children[ 0 ].destroyed ).to.be.true
 
-    expect( child.hangup_cause.sip ).equal( 408 )
-    expect( child.hangup_cause.reason ).equal( "REQUEST_TIMEOUT" )
-    expect( child.hangup_cause.src ).equal( "us" )
+    expect( children[ 0 ].hangup_cause.sip ).equal( 408 )
+    expect( children[ 0 ].hangup_cause.reason ).equal( "REQUEST_TIMEOUT" )
+    expect( children[ 0 ].hangup_cause.src ).equal( "us" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
