@@ -116,6 +116,7 @@ class req {
     sdpid++
 
     this.set( "cseq", "1 INVITE" )
+    this.set( "max-forwards", "70" )
 
     this.setparsedheader( "call-id", uuidv4() )
 
