@@ -10,7 +10,7 @@ describe( "callmanager - store", function() {
   it( `simple store`, async function() {
     let dummycall = {
       "uuid": "1",
-      "entity": {
+      "_entity": {
         "uri": "1234@domain"
       },
       "sip": {
@@ -32,7 +32,7 @@ describe( "callmanager - store", function() {
   it( `simple store with update of local tag`, async function() {
     let dummycall = {
       "uuid": "1",
-      "entity": {
+      "_entity": {
         "uri": "1234@domain"
       },
       "sip": {
@@ -67,7 +67,7 @@ describe( "callmanager - store", function() {
       }
     }
     let call = await callstore.getbycallid( searchfor )
-    expect( call.entity.uri ).to.be.equal( "1234@domain" )
+    expect( call._entity.uri ).to.be.equal( "1234@domain" )
   } )
 
   it( `call set three calls add entity`, async function() {
@@ -114,7 +114,7 @@ describe( "callmanager - store", function() {
       "storebyentity": 0
     } )
 
-    dummycall1.entity = {
+    dummycall1._entity = {
       "uri": "1000@testdomain"
     }
 
@@ -137,7 +137,7 @@ describe( "callmanager - store", function() {
     let c = await callstore.getbycallid( dummycall1.sip )
     expect( c.uuid ).to.equal( "1" )
 
-    let ce = await callstore.getbyentity( dummycall1.entity.uri ) // Map
+    let ce = await callstore.getbyentity( dummycall1._entity.uri ) // Map
     expect( ce.get( dummycall1.uuid ).uuid ).to.equal( "1" )
 
     callstore.delete( dummycall1 )

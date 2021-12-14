@@ -202,6 +202,9 @@ describe( "call object", function() {
       "storebyentity": 1
     } )
 
+    let e = await child.entity
+    expect( e.ccc ).to.equal( 1 )
+
     /* mock */
     let requestoptions = false
 
@@ -225,7 +228,7 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - create uac by entity with registrar but hit max limit`, async function() {
+  it( `uas.newuac - create uac by entity with max limit and registrar`, async function() {
 
     let options = {
       "registrar": {
@@ -485,6 +488,29 @@ describe( "call object", function() {
 
   } )
 
+  it( `uas.newuac - destroyed event`, async function() {
+
+    let srfscenario = new srf.srfscenario()
+
+    let waitforcallresolve
+    let waitforcall = new Promise( ( resolve ) => waitforcallresolve = resolve )
+
+    let ourcall
+    call.newuac( { "contact": "1000@dummy.com" }, { "early": ( c ) => { ourcall = c; waitforcallresolve(); } } )
+
+    await waitforcall
+
+    let eventhappened = false
+    ourcall.on( "call.destroyed", ( c ) => {
+      eventhappened = true
+    } )
+
+    /* immediatly hangup */
+    await ourcall.hangup()
+
+    expect( eventhappened ).to.be.true
+  } )
+
   it( `uas.newuac - answered and destroyed event`, async function() {
 
     let srfscenario = new srf.srfscenario()
@@ -580,9 +606,10 @@ describe( "call object", function() {
     expect( c.hangup_cause.src ).to.equal( "us" )
     expect( c.state.destroyed ).to.equal( true )
     expect( c.state.authed ).to.equal( true )
-    expect( c.entity.username ).to.equal( "bob" )
-    expect( c.entity.realm ).to.equal( "biloxi.com" )
-    expect( c.entity.uri ).to.equal( "bob@biloxi.com" )
+    let e = await c.entity
+    expect( e.username ).to.equal( "bob" )
+    expect( e.realm ).to.equal( "biloxi.com" )
+    expect( e.uri ).to.equal( "bob@biloxi.com" )
 
   } )
 
