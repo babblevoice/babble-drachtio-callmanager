@@ -789,4 +789,26 @@ describe( "call object", function() {
     expect( returnedval ).to.be.false
     expect( requestoptions ).to.be.false
   } )
+
+  it( `Test listen and emit event on call object`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let eventfired = false
+    c.on( "somerandomevent", ( ob ) => {
+      if( "hello" === ob ) eventfired = true
+    } )
+
+    c.emit( "somerandomevent", "hello" )
+    c.hangup()
+
+    expect( eventfired ).to.be.true
+
+  } )
 } )
