@@ -811,4 +811,26 @@ describe( "call object", function() {
     expect( eventfired ).to.be.true
 
   } )
+
+  it( `Test listen and emit call.pick on call object`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let eventfired = false
+    c.on( "call.pick", ( callobject ) => {
+      eventfired = true
+    } )
+
+    c.pick()
+    c.hangup()
+
+    expect( eventfired ).to.be.true
+
+  } )
 } )
