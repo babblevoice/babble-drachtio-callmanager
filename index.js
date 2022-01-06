@@ -1,6 +1,5 @@
 
 const assert = require( "assert" )
-const events = require( "events" )
 const callmanager = require( "./lib/callmanager.js" )
 
 const default_options = {
