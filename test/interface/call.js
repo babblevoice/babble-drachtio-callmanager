@@ -802,13 +802,118 @@ describe( "call object", function() {
 
     let eventfired = false
     c.on( "somerandomevent", ( ob ) => {
-      if( "hello" === ob ) eventfired = true
+      if( "hello" === ob.vars.xinfo ) eventfired = true
     } )
 
-    c.emit( "somerandomevent", "hello" )
+    c.vars.xinfo = "hello"
+    c.emit( "somerandomevent" )
     c.hangup()
 
     expect( eventfired ).to.be.true
+
+  } )
+
+  it( `Test listen and emit event on and removealllisteners call object`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let eventfired = 0
+    c.on( "somerandomevent", ( ob ) => {
+      if( "hello" === ob.vars.xinfo ) eventfired++
+    } )
+
+    c.vars.xinfo = "hello"
+    c.emit( "somerandomevent" )
+    c.removealllisteners( "somerandomevent" )
+    c.emit( "somerandomevent" )
+
+    c.hangup()
+
+    expect( eventfired ).to.be.equal( 1 )
+
+  } )
+
+  it( `Test listen and emit event on and removealllisteners (none specified) call object`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let eventfired = 0
+    c.on( "somerandomevent", ( ob ) => {
+      if( "hello" === ob.vars.xinfo ) eventfired++
+    } )
+
+    c.vars.xinfo = "hello"
+    c.emit( "somerandomevent" )
+    c.removealllisteners()
+    c.emit( "somerandomevent" )
+
+    c.hangup()
+
+    expect( eventfired ).to.be.equal( 1 )
+
+  } )
+
+  it( `Test listen and emit event on and off call object`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let eventfired = 0
+
+    let ourcb = ( ob ) => {
+      if( "hello" === ob.vars.xinfo ) eventfired++
+    }
+    c.on( "somerandomevent", ourcb )
+
+    c.vars.xinfo = "hello"
+    c.emit( "somerandomevent" )
+    c.off( "somerandomevent", ourcb )
+    c.emit( "somerandomevent" )
+
+    c.hangup()
+
+    expect( eventfired ).to.be.equal( 1 )
+
+  } )
+
+  it( `Test listen and emit event once call object`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let eventfired = 0
+    c.once( "somerandomevent", ( ob ) => {
+      if( "hello" === ob.vars.xinfo ) eventfired++
+    } )
+
+    c.vars.xinfo = "hello"
+    c.emit( "somerandomevent" )
+    c.emit( "somerandomevent" )
+    c.hangup()
+
+    expect( eventfired ).to.be.equal( 1 )
 
   } )
 
