@@ -2,6 +2,8 @@
 const assert = require( "assert" )
 const callmanager = require( "./lib/callmanager.js" )
 
+const projectrtp = require( "projectrtp" ).projectrtp
+
 const default_options = {
   "preferedcodecs": "g722 ilbc pcmu pcma",
   "transcode": true,
@@ -12,8 +14,18 @@ const default_options = {
   "registrar": false /* our registrar object or falsey */
 }
 
+/**
+@param { object } options - see default_options
+@returns { callmanager }
+*/
 module.exports.callmanager = async( options ) => {
-  return callmanager.callmanager( { ...default_options, ...options } )
+  let ouroptions = { ...default_options, ...options }
+  return callmanager.callmanager( ouroptions )
 }
+
+/**
+Expose our RTP interface
+*/
+module.exports.projectrtp = projectrtp
 
 module.exports.hangupcodes = callmanager.hangupcodes

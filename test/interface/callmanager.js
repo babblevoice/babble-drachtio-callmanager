@@ -1,5 +1,7 @@
 
 const expect = require( "chai" ).expect
+const net = require( "net" )
+
 const callmanager = require( "../../index.js" )
 const callstore = require( "../../lib/store.js" )
 
@@ -51,6 +53,32 @@ describe( "callmanager", function() {
       "storebyuuid": 1,
       "storebyentity": 0
     } )
+  } )
+
+  it( `create new callmanager object test for listening rtp server`, async function() {
+
+    this.timeout( 300 )
+    this.slow( 200 )
+
+    let options = {
+      "srf": { "use": ( method, asynccb ) => {} }
+    }
+
+    let rtpserver = callmanager.projectrtp.proxy.listen()
+    let c = await callmanager.callmanager( options )
+
+    let closing = false
+
+    let connection = net.createConnection( 9002, "127.0.0.1" )
+      .on( "error", () => {
+        expect( closing ).to.be.true
+      } )
+
+    await new Promise( ( r ) => setTimeout( () => r(), 100 ) )
+    closing = true
+
+    connection.destroy()
+    rtpserver.destroy()
   } )
 
   it( `check hangup codes on main interface`, async function() {
