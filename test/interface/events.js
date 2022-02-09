@@ -26,10 +26,10 @@ describe( "events", function() {
       call._tevent( "123*" )
     }, 10 )
 
-    let events = await call.waitforevents()
+    let events = await call.waitfortelevents()
     expect( events ).to.equal( "1" )
 
-    events = await call.waitforevents( /[0-9][0-9]\*/ )
+    events = await call.waitfortelevents( /[0-9][0-9]\*/ )
     expect( events ).to.equal( "23*" )
 
     await call.hangup()
@@ -51,7 +51,7 @@ describe( "events", function() {
       call._tevent( "123*" )
     }, 10 )
 
-    let events = await call.waitforevents()
+    let events = await call.waitfortelevents()
     expect( events ).to.equal( "1" )
 
     call.clearevents()
@@ -61,7 +61,7 @@ describe( "events", function() {
       call._tevent( "45#33" )
     }, 10 )
 
-    events = await call.waitforevents( /[0-9][0-9]\#/ )
+    events = await call.waitfortelevents( /[0-9][0-9]\#/ )
     expect( events ).to.equal( "45#" )
 
     call.hangup()
@@ -78,7 +78,7 @@ describe( "events", function() {
 
     await call.answer()
 
-    let events = await call.waitforevents( /[0-9A-D\*#]/, 10 )
+    let events = await call.waitfortelevents( /[0-9A-D\*#]/, 10 )
     expect( events ).to.be.undefined
 
     call.hangup()
