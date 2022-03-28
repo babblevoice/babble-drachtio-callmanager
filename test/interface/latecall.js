@@ -78,6 +78,13 @@ describe( "uas.newuac - late", function() {
     await child.hangup()
 
     expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    await call.hangup()
+    expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
       "storebyuuid": 0,
       "storebyentity": 0
@@ -112,7 +119,8 @@ describe( "uas.newuac - late", function() {
     } )
 
 
-    await child.hangup()
+    /* Hangup parent - child should follow */
+    await call.hangup()
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,

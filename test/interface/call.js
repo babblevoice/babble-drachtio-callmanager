@@ -139,7 +139,16 @@ describe( "call object", function() {
     /* if uac */
     expect( child ).to.not.have.property( "source" ).that.is.a( "object" )
 
+    /* Hanging up child does not hangup parent */
     await child.hangup()
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    /* Hangup parent */
+    await call.hangup()
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
@@ -435,10 +444,18 @@ describe( "call object", function() {
     expect( child.hangup_cause.src ).equal( "wire" )
 
     expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 1,
+      "storebyuuid": 1,
+      "storebyentity": 0
+    } )
+
+    await call.hangup()
+    expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
       "storebyuuid": 0,
       "storebyentity": 0
     } )
+
 
     expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
 
@@ -505,7 +522,7 @@ describe( "call object", function() {
       eventhappened = true
     } )
 
-    /* immediatly hangup */
+    /* immediately hangup */
     await ourcall.hangup()
 
     expect( eventhappened ).to.be.true
