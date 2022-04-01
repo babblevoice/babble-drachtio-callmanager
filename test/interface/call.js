@@ -4,6 +4,8 @@ const callmanager = require( "../../index.js" )
 const call = require( "../../lib/call.js" )
 const srf = require( "../mock/srf.js" )
 const projectrtp = require( "projectrtp" ).projectrtp
+const projectrtpmessage = require( "projectrtp/lib/message.js" )
+const net = require( "net" )
 
 /* These DO NOT form part of our interface */
 const clearcallmanager = require( "../../lib/callmanager.js" )._clear
@@ -954,5 +956,89 @@ describe( "call object", function() {
 
     expect( eventfired ).to.be.true
 
+  } )
+
+  it( `Create a call and mock rtpengine and ensure we receive events`, async function() {
+    let srfscenario = new srf.srfscenario( {} )
+    let rtpserver = callmanager.projectrtp.proxy.listen()
+
+    let connection = net.createConnection( 9002, "127.0.0.1" )
+      .on( "error", ( e ) => {
+        console.error( e )
+      } )
+
+    connection.on( "connect", () => {
+      /* announce our node */
+      connection.write( projectrtpmessage.createmessage( {"status":{"channel":{"available":5000,"current":0},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) )
+    } )
+
+    let messagestate = projectrtpmessage.newstate()
+    let msgid
+    connection.on( "data", ( data ) => {
+      projectrtpmessage.parsemessage( messagestate, data, ( msg ) => {
+        if( "open" === msg.channel ) {
+          msgid = msg.id
+          setTimeout( () => connection.write( projectrtpmessage.createmessage( {"local":{"port":10008,"dtls":{"fingerprint":"Some fingerprint","enabled":false},"address":"192.168.0.141"},"id": msg.id, "uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"open","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 2 )
+        } else if( "close" == msg.channel ) {
+          connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"record","file":"/tmp/voicemail/recording/03039cdb-1949-407d-91d6-15ba6894955c.wav","event":"finished.channelclosed","filesize":160684,"emailed":true,"transcription":"test recording for voicemail","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) )
+          connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}} ) )
+        }
+      } )
+    } )
+
+    /* ensure we are connected */
+    await new Promise( ( r ) => setTimeout( () => r(), 100 ) )
+
+    /* this flow mimicks the flow associated with a voicemail being left */
+    let c = await call.newuac( {
+      "contact": "ourcontactstring"
+    } )
+
+    setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"start","reason":"new","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 1 )
+    setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"end","reason":"completed","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 10 )
+    c.channels.audio.play( { "files": [ { "wav": "/voicemail/greeting.wav", "alt": "greeting" } ] } )
+    let ev = await c.waitforanyevent( { "action": "play", "event": "end" } )
+    expect( ev.action ).to.equal( "play" )
+    expect( ev.event ).to.equal( "end" )
+    expect( ev.reason ).to.equal( "completed" )
+
+
+    setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"start","reason":"new","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ) )
+    setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"end","reason":"completed","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ) )
+    c.channels.audio.play( { "files": [ { "wav": "/voicemail/boing.wav", "alt": "" } ] } )
+    ev = await c.waitforanyevent( { "action": "play", "event": "end" } )
+    expect( ev.action ).to.equal( "play" )
+    expect( ev.event ).to.equal( "end" )
+    expect( ev.reason ).to.equal( "completed" )
+
+
+    setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"record","file":"/tmp/voicemail/recording/03039cdb-1949-407d-91d6-15ba6894955c.wav","event":"recording","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 5 )
+    
+    c.channels.audio.record( {
+      "file": "/voicemail/jhjhjgjhgjg.wav",
+      "maxduration": 120 * 1000,
+      "numchannels": 1,
+      "email": {
+        "to": "test@example.com",
+        "foruser": "1000",
+        "from": "012345789"
+      },
+      "transcribe": true
+    } )
+
+    setTimeout( () => {
+      /* hangup from client */
+      c._onhangup( "wire" )
+    }, 50 )
+
+    ev = await c.waitforanyevent( { "action": "record", "event": /finished.*|\*/ }, 10000 )
+    expect( ev.action ).to.equal( "record" )
+    expect( ev.event ).to.equal( "finished.channelclosed" )
+    expect( ev.transcription ).to.equal( "test recording for voicemail" )
+    expect( ev.emailed ).to.be.true
+    expect( ev.filesize ).to.equal( 160684 )
+
+    connection.destroy()
+    rtpserver.destroy()
   } )
 } )
