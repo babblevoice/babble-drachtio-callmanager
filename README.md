@@ -153,6 +153,14 @@ cm.on( "call", async ( c ) => {
 
 jsdoc -r -p lib/
 
+# Development
+
+I use to develop locally other modules against this module
+
+npm link projectrtp
+npm link babble-drachtio-registrar
+npm link babble-drachtio-auth
+
 # References
 
 * SIP: Session Initiation Protocol [RFC 3261](https://tools.ietf.org/html/rfc3261)
