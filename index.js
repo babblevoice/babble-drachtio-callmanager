@@ -1,6 +1,7 @@
 
 const assert = require( "assert" )
 const callmanager = require( "./lib/callmanager.js" )
+const store = require( "./lib/store.js" )
 
 const projectrtp = require( "projectrtp" ).projectrtp
 
@@ -28,4 +29,12 @@ Expose our RTP interface
 */
 module.exports.projectrtp = projectrtp
 
+/**
+ * Hangup Codes
+ */
 module.exports.hangupcodes = callmanager.hangupcodes
+
+/**
+ * Call store
+ */
+ module.exports.store = store
