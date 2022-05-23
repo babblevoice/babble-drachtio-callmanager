@@ -19,7 +19,7 @@ const default_options = {
 @param { object } options - see default_options
 @returns { callmanager }
 */
-module.exports.callmanager = async( options ) => {
+module.exports.callmanager = ( options ) => {
   let ouroptions = { ...default_options, ...options }
   return callmanager.callmanager( ouroptions )
 }
@@ -37,4 +37,9 @@ module.exports.hangupcodes = callmanager.hangupcodes
 /**
  * Call store
  */
- module.exports.store = store
+module.exports.store = store
+
+/**
+ * Call
+ */
+ module.exports.call = callmanager.call

@@ -211,4 +211,86 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     expect( a.address ).to.equal( "192.168.0.100" )
 
   } )
+
+  it( `sdp webrtc parse`, async function() {
+
+    const testsdp = `v=0
+o=- 5012137047437522294 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=extmap-allow-mixed
+a=msid-semantic: WMS XjKU0noZQudw5wysGsQOsBwJVp0Dk9PbZxHw
+m=audio 37867 UDP/TLS/RTP/SAVPF 111 63 103 104 9 0 8 106 105 13 110 112 113 126
+c=IN IP4 82.19.206.102
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:3011219415 1 udp 1686052607 82.19.206.102 37867 typ srflx raddr 192.168.0.141 rport 37867 generation 0 network-id 1 network-cost 10
+a=ice-ufrag:7hP3
+a=ice-pwd:N5djR9gk703hm3CBZ368MGZ0
+a=ice-options:trickle
+a=fingerprint:sha-256 D7:88:04:4B:B1:F2:B1:B3:ED:58:49:0C:31:5A:1D:E2:D3:1F:2D:43:FF:74:8E:9B:97:1F:E7:61:BE:27:62:3A
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=sendrecv
+a=msid:XjKU0noZQudw5wysGsQOsBwJVp0Dk9PbZxHw 83ac3abd-cc86-427a-9cb7-ebac0c73964a
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtpmap:63 red/48000/2
+a=fmtp:63 111/111
+a=rtpmap:103 ISAC/16000
+a=rtpmap:104 ISAC/32000
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:106 CN/32000
+a=rtpmap:105 CN/16000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:112 telephone-event/32000
+a=rtpmap:113 telephone-event/16000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:2706351154 cname:aRo4fxWy9rdrJwUj
+a=ssrc:2706351154 msid:XjKU0noZQudw5wysGsQOsBwJVp0Dk9PbZxHw 83ac3abd-cc86-427a-9cb7-ebac0c73964a
+a=ssrc:2706351154 mslabel:XjKU0noZQudw5wysGsQOsBwJVp0Dk9PbZxHw
+a=ssrc:2706351154 label:83ac3abd-cc86-427a-9cb7-ebac0c73964a`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+
+    let oursdp = sdp.create( testsdp )
+
+    expect( oursdp.sdp.media[ 0 ].fingerprint.hash )
+      .to.equal( "D7:88:04:4B:B1:F2:B1:B3:ED:58:49:0C:31:5A:1D:E2:D3:1F:2D:43:FF:74:8E:9B:97:1F:E7:61:BE:27:62:3A" )
+    expect( oursdp.sdp.media[ 0 ].fingerprint.type ).to.equal( "sha-256" )
+    expect( oursdp.sdp.media[ 0 ].setup ).to.equal( "actpass" )
+
+  } )
+
+  it( `sdp webrtc generate`, async function() {
+    
+    let oursdp = sdp.create()
+              .addcodecs( "pcma" )
+              .setconnectionaddress( "127.0.0.1" )
+              .setaudioport( 4 )
+              .addssrc( 44 )
+              .secure( "ourfingerprint", "act" )
+              .addicecandidates( "127.0.0.1", 4 )
+              .rtcpmux()
+    
+    expect( oursdp.sdp.media[ 0 ].rtcpMux ).to.equal( "rtcp-mux" )
+    expect( oursdp.sdp.media[ 0 ].fingerprint.type ).to.equal( "sha-256" )
+    expect( oursdp.sdp.media[ 0 ].fingerprint.hash ).to.equal( "ourfingerprint" )
+    expect( oursdp.sdp.media[ 0 ].setup ).to.equal( "act" )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].foundation ).to.equal( 1 )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].component ).to.equal( 1 )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].transport ).to.equal( "udp" )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].priority ).to.equal( 255 )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].ip ).to.equal( "127.0.0.1" )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].port ).to.equal( 4 )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].type ).to.equal( "host" )
+    expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].generation ).to.equal( 0 )
+  } )
 } )

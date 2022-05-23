@@ -1,12 +1,7 @@
 
 const expect = require( "chai" ).expect
-const callmanager = require( "../../index.js" )
-const call = require( "../../lib/call.js" )
 const srf = require( "../mock/srf.js" )
-const projectrtp = require( "projectrtp" ).projectrtp
 
-/* These DO NOT form part of our interface */
-const clearcallmanager = require( "../../lib/callmanager.js" )._clear
 
 describe( "call sdp generation", function() {
   it( `uas.newuac - check sdp`, async function() {
