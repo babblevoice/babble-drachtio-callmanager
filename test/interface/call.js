@@ -3,8 +3,8 @@ const expect = require( "chai" ).expect
 const callmanager = require( "../../index.js" )
 const call = require( "../../lib/call.js" )
 const srf = require( "../mock/srf.js" )
-const projectrtp = require( "projectrtp" ).projectrtp
-const projectrtpmessage = require( "projectrtp/lib/message.js" )
+const projectrtp = require( "@babblevoice/projectrtp" ).projectrtp
+const projectrtpmessage = require( "@babblevoice/projectrtp/lib/message.js" )
 const net = require( "net" )
 
 /* These DO NOT form part of our interface */
@@ -77,10 +77,11 @@ describe( "call object", function() {
     expect( call.channels ).to.have.property( "audio" ).to.be.false
 
     /* if uas */
-    expect( call ).to.have.property( "source" ).that.is.a( "object" )
-    expect( call.source ).to.have.property( "address" ).that.is.a( "string" )
-    expect( call.source ).to.have.property( "port" ).that.is.a( "number" )
-    expect( call.source ).to.have.property( "protocol" ).that.is.a( "string" )
+    expect( call ).to.have.property( "network" ).that.is.a( "object" )
+    expect( call.network ).to.have.property( "remote" ).that.is.a( "object" )
+    expect( call.network.remote ).to.have.property( "address" ).that.is.a( "string" )
+    expect( call.network.remote ).to.have.property( "port" ).that.is.a( "number" )
+    expect( call.network.remote ).to.have.property( "protocol" ).that.is.a( "string" )
     expect( call ).to.have.property( "sip" ).that.is.a( "object" )
     expect( call.sip ).to.have.property( "callid" ).that.is.a( "string" )
     expect( call.sip ).to.have.property( "tags" ).that.is.a( "object" )
@@ -89,6 +90,8 @@ describe( "call object", function() {
 
     expect( call.hangup_cause.reason ).to.equal( "NORMAL_CLEARING" )
     expect( call.hangup_cause.sip ).to.equal( 487 )
+
+    expect( call.state.cleaned ).to.be.true
 
   } )
 
@@ -160,6 +163,9 @@ describe( "call object", function() {
 
     expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
 
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
+
   } )
 
   it( `uas.newuac - create uac by entity no registrar`, async function() {
@@ -180,9 +186,17 @@ describe( "call object", function() {
     } )
 
     await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+    expect( call.state.cleaned ).to.be.true
   } )
 
-  it( `uas.newuac - create uac by entity with registrar`, async function() {
+  it( `uas.newuac - create uac by entity with registrar #123`, async function() {
 
     let options = {
       "registrar": {
@@ -192,7 +206,7 @@ describe( "call object", function() {
             "realm": "dummy.com",
             "display": "Bob",
             "uri": "1000@dummy.com",
-            "contacts": [ "sip:1000@dummy.com:5060", "sip:1000@dummy.com:5060;transport=blah" ]
+            "contacts": [ { "contact": "sip:1000@dummy.com:5060" }, { "contact": "sip:1000@dummy.com:5060;transport=blah" } ]
           }
         }
       }
@@ -237,6 +251,9 @@ describe( "call object", function() {
 
     expect( srfscenario.options.srf._createuaccount ).to.equal( 2 )
 
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
+
   } )
 
   it( `uas.newuac - create uac by entity with max limit and registrar`, async function() {
@@ -249,7 +266,7 @@ describe( "call object", function() {
             "realm": "dummy.com",
             "display": "Bob",
             "uri": "1000@dummy.com",
-            "contacts": [ "sip:1000@dummy.com:5060", "sip:1000@dummy.com:5060;transport=blah" ]
+            "contacts": [ { "contact": "sip:1000@dummy.com:5060" }, { "contact": "sip:1000@dummy.com:5060;transport=blah" } ]
           }
         }
       }
@@ -290,6 +307,9 @@ describe( "call object", function() {
 
     expect( srfscenario.options.srf._createuaccount ).to.equal( 4 )
     expect( child2 ).to.be.false
+
+    expect( child.state.cleaned ).to.be.true
+    expect( child3.state.cleaned ).to.be.true
 
   } )
 
@@ -332,6 +352,9 @@ describe( "call object", function() {
       "storebyuuid": 0,
       "storebyentity": 0
     } )
+
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
   } )
 
   it( `uas.newuac - 486`, async function() {
@@ -369,6 +392,9 @@ describe( "call object", function() {
       "storebyuuid": 0,
       "storebyentity": 0
     } )
+
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
   } )
 
 
@@ -388,7 +414,7 @@ describe( "call object", function() {
       }
     } ) /* overide default - very short */
 
-    expect( child ).to.be.false
+    expect( child.destroyed ).to.be.true
     expect( children.length ).to.equal( 1 )
     expect( children[ 0 ].destroyed ).to.be.true
 
@@ -409,6 +435,9 @@ describe( "call object", function() {
       "storebyuuid": 0,
       "storebyentity": 0
     } )
+
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
   } )
 
   it( `uas.newuac - child remote hangup`, async function() {
@@ -461,6 +490,9 @@ describe( "call object", function() {
 
     expect( child.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
 
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
+
   } )
 
   it( `uas.newuac - new call event`, async function() {
@@ -511,23 +543,20 @@ describe( "call object", function() {
 
     let srfscenario = new srf.srfscenario()
 
-    let waitforcallresolve
-    let waitforcall = new Promise( ( resolve ) => waitforcallresolve = resolve )
-
-    let ourcall
-    call.newuac( { "contact": "1000@dummy.com" }, { "early": ( c ) => { ourcall = c; waitforcallresolve(); } } )
-
-    await waitforcall
-
     let eventhappened = false
-    ourcall.on( "call.destroyed", ( c ) => {
+
+    let c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    c.on( "call.destroyed", ( c ) => {
       eventhappened = true
     } )
 
-    /* immediately hangup */
-    await ourcall.hangup()
+    await c.hangup()
 
-    expect( eventhappened ).to.be.true
+    expect( eventhappened ).to.be.false
   } )
 
   it( `uas.newuac - answered and destroyed event`, async function() {
@@ -691,6 +720,8 @@ describe( "call object", function() {
       } )
       srfscenario.inbound()
     } )
+
+    await c.waitforhangup()
 
     expect( eventhappened ).to.be.true
     expect( c.hangup_cause.reason ).to.equal( "FORBIDDEN" )
