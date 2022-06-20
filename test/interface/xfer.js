@@ -3,11 +3,10 @@ const expect = require( "chai" ).expect
 const callmanager = require( "../../index.js" )
 const call = require( "../../lib/call.js" )
 const srf = require( "../mock/srf.js" )
-const projectrtp = require( "projectrtp" ).projectrtp
+const projectrtp = require( "@babblevoice/projectrtp" ).projectrtp
 
 /* These DO NOT form part of our interface */
 const clearcallmanager = require( "../../lib/callmanager.js" )._clear
-const callstore = require( "../../lib/store.js" )
 
 describe( "xfer", function() {
 
@@ -131,16 +130,17 @@ describe( "xfer", function() {
     await b_2._dialog.callbacks.refer( req, res )
 
     /* As part of the process the b_2 client will send us a hangup */
-    b_2.hangup()
+    await b_2._onhangup( "wire" )
 
     /* these two now have a chat before hanging up */
-    a_1.hangup()
-    c_1.hangup()
+    await a_1.hangup()
+    await c_1.hangup()
 
     expect( b_1.hangup_cause.sip ).equal( 487 )
     expect( b_1.hangup_cause.src ).equal( "us" )
     expect( b_1.hangup_cause.reason ).equal( "ATTENDED_TRANSFER" )
 
+    expect( b_2.state.cleaned ).to.be.true
     expect( b_2.hangup_cause.sip ).equal( 487 )
     expect( b_2.hangup_cause.src ).equal( "wire" )
     expect( b_2.hangup_cause.reason ).equal( "ATTENDED_TRANSFER" )
