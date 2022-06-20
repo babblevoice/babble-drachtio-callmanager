@@ -20,6 +20,8 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@babblevoice/babble-drachtio-auth": "^1.0.0",
+    "@babblevoice/projectrtp": "^1.0.0",
     "chai": "^4.3.4",
     "drachtio-srf": "^4.4.47",
     "mocha": "^9.2.2",
@@ -32,6 +34,5 @@
   "directories": {
     "lib": "lib",
     "test": "test"
-  },
-  "devDependencies": {}
+  }
 }

@@ -3,7 +3,7 @@ const assert = require( "assert" )
 const callmanager = require( "./lib/callmanager.js" )
 const store = require( "./lib/store.js" )
 
-const projectrtp = require( "projectrtp" ).projectrtp
+const projectrtp = require( "@babblevoice/projectrtp" ).projectrtp
 
 const default_options = {
   "preferedcodecs": "g722 ilbc pcmu pcma",
