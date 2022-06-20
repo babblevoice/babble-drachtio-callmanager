@@ -375,6 +375,7 @@ class srfscenario {
 
       let newcall = call.frominvite( this.req, this.res )
       this.callbacks.call( newcall )
+        .catch( () => newcall.hangup() )
     }
   }
 }
