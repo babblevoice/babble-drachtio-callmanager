@@ -1,6 +1,6 @@
 {
   "name": "@babblevoice/babble-drachtio-callmanager",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Call processing to create a PBX",
   "main": "index.js",
   "scripts": {
@@ -27,7 +27,7 @@
     "uuid": "^8.3.2"
   },
   "optionalDependencies": {
-    "@babblevoice/projectrtp": "^2.1.0"
+    "@babblevoice/projectrtp": "^2.2.0"
   },
   "bugs": {
     "url": "https://github.com/tinpotnick/babble-drachtio-callmanager/issues"
