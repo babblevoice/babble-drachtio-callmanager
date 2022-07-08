@@ -20,7 +20,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@babblevoice/babble-drachtio-auth": "^1.0.0",
+    "@babblevoice/babble-drachtio-auth": "^1.0.1",
     "chai": "^4.3.4",
     "drachtio-srf": "^4.4.47",
     "mocha": "^9.2.2",
