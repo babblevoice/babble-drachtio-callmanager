@@ -326,8 +326,8 @@ a=rtpmap:8 PCMA/8000`
 
     let def = call._createchannelremotedef( remoteaudio.address, remoteaudio.port, remoteaudio.audio.payloads[ 0 ] )
 
-    expect( def.address ).to.equal( "213.166.4.136" )
-    expect( def.port ).to.equal( 48380 )
-    expect( def.codec ).to.equal( 8 )
+    expect( def.remote.address ).to.equal( "213.166.4.136" )
+    expect( def.remote.port ).to.equal( 48380 )
+    expect( def.remote.codec ).to.equal( 8 )
   } )
 } )
