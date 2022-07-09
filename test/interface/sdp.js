@@ -2,6 +2,7 @@
 
 const expect = require( "chai" ).expect
 const sdp = require( "../../lib/sdp.js" )
+const call = require( "../../lib/call.js" )
 
 describe( "sdp", function() {
 
@@ -292,5 +293,41 @@ a=ssrc:2706351154 label:83ac3abd-cc86-427a-9cb7-ebac0c73964a`.replace(/(\r\n|\n|
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].port ).to.equal( 4 )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].type ).to.equal( "host" )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].generation ).to.equal( 0 )
+  } )
+
+  it( `sdp pcma real life sdp avon`, async function() {
+  const testsdp = `v=0
+o=MTLSBC 1657399906 1657399907 IN IP4 213.166.4.136
+s=SIP Call
+c=IN IP4 213.166.4.136
+t=0 0
+a=sendrecv
+m=audio 48380 RTP/AVP 8
+a=rtpmap:8 PCMA/8000`
+
+    let oursdp = sdp.create( testsdp )
+    let selectedcodec = oursdp.intersection( "g722 ilbc pcmu pcma", true )
+    expect( selectedcodec ).to.equal( "pcma" )
+
+  } )
+
+  it( `sdp pcma real life sdp getautdio avon`, async function() {
+    const testsdp = `v=0
+o=MTLSBC 1657399906 1657399907 IN IP4 213.166.4.136
+s=SIP Call
+c=IN IP4 213.166.4.136
+t=0 0
+a=sendrecv
+m=audio 48380 RTP/AVP 8
+a=rtpmap:8 PCMA/8000`
+
+    let oursdp = sdp.create( testsdp )
+    let remoteaudio = oursdp.getaudio()
+
+    let def = call._createchannelremotedef( remoteaudio.address, remoteaudio.port, remoteaudio.audio.payloads[ 0 ] )
+
+    expect( def.address ).to.equal( "213.166.4.136" )
+    expect( def.port ).to.equal( 48380 )
+    expect( def.codec ).to.equal( 8 )
   } )
 } )
