@@ -25,7 +25,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
       "storebyuuid": 1,
-      "storebyentity": 1
+      "storebyentity": 1,
+      "storebyentityrealm": 1
     } )
   } )
 
@@ -47,7 +48,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
       "storebyuuid": 1,
-      "storebyentity": 1
+      "storebyentity": 1,
+      "storebyentityrealm": 1
     } )
 
     dummycall.sip.tags.local = "4444"
@@ -56,7 +58,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
       "storebyuuid": 1,
-      "storebyentity": 1
+      "storebyentity": 1,
+      "storebyentityrealm": 1
     } )
 
     let searchfor = {
@@ -111,7 +114,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
       "storebyuuid": 2,
-      "storebyentity": 0
+      "storebyentity": 0,
+      "storebyentityrealm": 0
     } )
 
     dummycall1._entity = {
@@ -123,7 +127,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
       "storebyuuid": 2,
-      "storebyentity": 1
+      "storebyentity": 1,
+      "storebyentityrealm": 1
     } )
 
     await callstore.set( dummycall3 )
@@ -131,7 +136,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 3,
       "storebyuuid": 3,
-      "storebyentity": 1
+      "storebyentity": 1,
+      "storebyentityrealm": 1
     } )
 
     let c = await callstore.getbycallid( dummycall1.sip )
@@ -147,7 +153,8 @@ describe( "callmanager - store", function() {
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
       "storebyuuid": 0,
-      "storebyentity": 0
+      "storebyentity": 0,
+      "storebyentityrealm": 0
     } )
   } )
 } )
