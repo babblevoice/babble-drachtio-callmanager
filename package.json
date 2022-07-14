@@ -1,6 +1,6 @@
 {
   "name": "@babblevoice/babble-drachtio-callmanager",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Call processing to create a PBX",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@babblevoice/babble-drachtio-auth": "^1.0.1",
+    "@babblevoice/babble-drachtio-auth": "^1.0.2",
     "chai": "^4.3.4",
     "drachtio-srf": "^4.4.47",
     "mocha": "^9.2.2",
