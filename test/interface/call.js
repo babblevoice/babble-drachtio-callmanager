@@ -752,7 +752,7 @@ describe( "call object", function() {
   } )
 
   it( `uas.newuac - early callback is called`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -768,7 +768,7 @@ describe( "call object", function() {
   } )
 
   it( `uas.newuac - confirmed callback is called`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -784,7 +784,7 @@ describe( "call object", function() {
   } )
 
   it( `uas.newuac - simple update`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -814,7 +814,7 @@ describe( "call object", function() {
   } )
 
   it( `uas.newuac - simple update - but don't allow as not in allow`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -841,7 +841,7 @@ describe( "call object", function() {
   } )
 
   it( `Test listen and emit event on call object`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -864,7 +864,7 @@ describe( "call object", function() {
   } )
 
   it( `Test listen and emit event on and removealllisteners call object`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -890,7 +890,7 @@ describe( "call object", function() {
   } )
 
   it( `Test listen and emit event on and removealllisteners (none specified) call object`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -916,7 +916,7 @@ describe( "call object", function() {
   } )
 
   it( `Test listen and emit event on and off call object`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -944,7 +944,7 @@ describe( "call object", function() {
   } )
 
   it( `Test listen and emit event once call object`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -968,7 +968,7 @@ describe( "call object", function() {
   } )
 
   it( `Test listen and emit call.pick on call object`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
 
     let options = {
       "contact": "ourcontactstring",
@@ -990,7 +990,7 @@ describe( "call object", function() {
   } )
 
   it( `Create a call and mock rtpengine and ensure we receive events`, async function() {
-    let srfscenario = new srf.srfscenario( {} )
+    new srf.srfscenario( {} )
     let rtpserver = callmanager.projectrtp.proxy.listen()
 
     let connection = net.createConnection( 9002, "127.0.0.1" )
@@ -1071,5 +1071,33 @@ describe( "call object", function() {
 
     connection.destroy()
     rtpserver.destroy()
+  } )
+
+  it( `set get moh`, async function() {
+    new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "late": true
+    }
+
+    let c = await call.newuac( options )
+
+    let s = {
+      "loop": true,
+      "files": [
+        { "wav": "some.wav" }
+      ]
+    }
+
+    /* no default configured */
+    expect( c.moh ).to.be.undefined
+    c.moh = s
+
+    expect( c._moh.loop ).to.equal( true )
+    expect( c.moh.loop ).to.equal( true )
+
+    c._onhangup( "wire" )
+
   } )
 } )
