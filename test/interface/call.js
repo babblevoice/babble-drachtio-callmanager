@@ -747,7 +747,7 @@ describe( "call object", function() {
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:0000000000@localhost.localdomain>` )
+    expect( createuacoptions.headers[ "Remote-Party-ID" ] ).to.equal( `"" <sip:0000000000@localhost.localdomain>` )
     expect( createuacoptions.noAck ).to.be.true
   } )
 
