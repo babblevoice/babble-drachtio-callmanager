@@ -554,9 +554,9 @@ describe( "call object", function() {
       eventhappened = true
     } )
 
-    await c.hangup()
-
     expect( eventhappened ).to.be.false
+    await c.hangup()
+    expect( eventhappened ).to.be.true
   } )
 
   it( `uas.newuac - answered and destroyed event`, async function() {
