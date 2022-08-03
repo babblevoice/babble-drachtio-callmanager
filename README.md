@@ -37,14 +37,14 @@ const r = new Registrar( {
   "staletime": 180, /* number of seconds we consider a client stale if we don't hear a response from an OPTIONS or REGISTER ping */
   "expires": 3600, /* default expires */
   "minexpires": 3600, /* Force the client with 423 to extend expires to this amount - conflicts with regping */
-  "passwordLookup": passwordLookup
+  "userlookup": passwordLookup
 } )
 
 
 const cm = new CallManager( {
   "srf": srf,
   "registrar": r,
-  "passwordLookup": passwordLookup
+  "userlookup": passwordLookup
 } )
 
 cm.on( "call", async ( c ) => {
@@ -59,7 +59,7 @@ CallManager takes an options object as part of its construction. srf and a passw
 ```json
 {
   "srf": srf,
-  "passwordLookup": passwordLookup,
+  "userlookup": passwordLookup,
   "preferedcodecs": "pcmu pcma 2833",
   "transcode": true
 }
