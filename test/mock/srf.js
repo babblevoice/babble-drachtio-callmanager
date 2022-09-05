@@ -165,6 +165,11 @@ class res {
     this.callbacks = {
       "onsend": false
     }
+
+    this.msg = {
+      "body": possiblesdp[ sdpid % possiblesdp.length ],
+      method: "INVITE"
+    }
   }
 
   /* returns undefined - https://drachtio.org/api#sip-request */
