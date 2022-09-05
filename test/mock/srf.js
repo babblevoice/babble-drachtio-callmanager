@@ -86,13 +86,103 @@ a=fmtp:97 mode=20
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 ]
 
+let possiblesavpsdp = [
+  `v=0
+o=- 6278233949897424941 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=extmap-allow-mixed
+a=msid-semantic: WMS Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK
+m=audio 48356 UDP/TLS/RTP/SAVPF 111 63 103 104 9 0 8 106 105 13 110 112 113 126
+c=IN IP4 82.19.206.102
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:79019993 1 udp 1686052607 82.19.206.102 48356 typ srflx raddr 172.17.0.1 rport 48356 generation 0 network-id 1
+a=ice-ufrag:K8PO
+a=ice-pwd:3RU9dMh3eDbYsfJIyQ4ki5va
+a=ice-options:trickle
+a=fingerprint:sha-256 73:D5:EC:C0:BF:A7:CA:42:1B:DE:B6:EA:CE:B9:D0:32:38:65:50:4A:27:BF:58:9A:DF:24:B2:10:53:58:88:B9
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=sendrecv
+a=msid:Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK eaa81692-2187-4303-8e59-ed1bcb9591ee
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtpmap:63 red/48000/2
+a=fmtp:63 111/111
+a=rtpmap:103 ISAC/16000
+a=rtpmap:104 ISAC/32000
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:106 CN/32000
+a=rtpmap:105 CN/16000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:112 telephone-event/32000
+a=rtpmap:113 telephone-event/16000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:3789235955 cname:k129XMgcWznC/heR
+a=ssrc:3789235955 msid:Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK eaa81692-2187-4303-8e59-ed1bcb9591ee`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
+`v=0
+o=- 6278233949897424941 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=extmap-allow-mixed
+a=msid-semantic: WMS Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK
+m=audio 30000 UDP/TLS/RTP/SAVPF 111 63 103 104 9 0 8 106 105 13 110 112 113 126
+c=IN IP4 8.8.8.8
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:79019993 1 udp 1686052607 8.8.8.8 30000 typ srflx raddr 172.17.0.1 rport 30000 generation 0 network-id 1
+a=ice-ufrag:K8PO
+a=ice-pwd:3RU9dMh3eDbYsfJIyQ4ki5va
+a=ice-options:trickle
+a=fingerprint:sha-256 73:D5:EC:C0:BF:A7:CA:42:1B:DE:B6:EA:CE:B9:D0:32:38:65:50:4A:27:BF:58:9A:DF:24:B2:10:53:58:88:B9
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=sendrecv
+a=msid:Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK eaa81692-2187-4303-8e59-ed1bcb9591ee
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtpmap:63 red/48000/2
+a=fmtp:63 111/111
+a=rtpmap:103 ISAC/16000
+a=rtpmap:104 ISAC/32000
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:106 CN/32000
+a=rtpmap:105 CN/16000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:112 telephone-event/32000
+a=rtpmap:113 telephone-event/16000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:3789235955 cname:k129XMgcWznC/heR
+a=ssrc:3789235955 msid:Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK eaa81692-2187-4303-8e59-ed1bcb9591ee`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+]
+
+
 let sdpid = 0
 
 /*
 Mock req object
 */
 class req {
-  constructor( options ) {
+  constructor( options = {} ) {
     this.parsedheaders = {}
     this.headers = {}
 
@@ -109,8 +199,14 @@ class req {
 
     this.callbacks = {}
 
+    let sdp = possiblesdp[ sdpid % possiblesdp.length ]
+    
+    if( options.savpf ) {
+      sdp = possiblesavpsdp[ sdpid % possiblesavpsdp.length ]
+    }
+
     this.msg = {
-      "body": possiblesdp[ sdpid % possiblesdp.length ],
+      "body": sdp,
       method: "INVITE"
     }
     sdpid++
@@ -326,7 +422,7 @@ is bad testing.
 Our setup of the test and our mock objects need to look simple and are easily explainable.
 */
 class srfscenario {
-  constructor( options ) {
+  constructor( options = {} ) {
     /* every scenario we restart spd */
     sdpid = 0
 
@@ -340,6 +436,11 @@ class srfscenario {
       "method": "invite",
       "uacsdp": possiblesdp[ 0 ],
       "uassdp": possiblesdp[ 1 ]
+    }
+
+    if( options.savpf ) {
+      defaultoptions.uacsdp = possiblesavpsdp[ 0 ]
+      defaultoptions.uassdp = possiblesavpsdp[ 1 ]
     }
 
     this.options = { ...defaultoptions, ...options }
@@ -373,9 +474,13 @@ class srfscenario {
   /*
     simulate a new inbound call
   */
-  inbound() {
+  inbound( ureq ) {
     if( this.callbacks.call ) {
-      this.req = new req( new options() )
+      if( ureq ) {
+        this.req = ureq
+      } else {
+        this.req = new req( new options() )
+      }
       this.res = new res()
 
       let newcall = call.frominvite( this.req, this.res )
