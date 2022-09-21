@@ -1100,4 +1100,44 @@ describe( "call object", function() {
     c._onhangup( "wire" )
 
   } )
+
+  it( `overide caller id name`, async function() {
+    new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "callerid": {
+        "name": "Hello"
+      }
+    }
+
+    let c = await call.newuac( options )
+
+    /* no default configured */
+    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( '"Hello" <sip:0000000000@localhost.localdomain>' )
+
+    c._onhangup( "wire" )
+
+  } )
+
+
+  it( `overide caller id number`, async function() {
+    new srf.srfscenario( {} )
+
+    let options = {
+      "contact": "ourcontactstring",
+      "callerid": {
+        "number": "012345789"
+      }
+    }
+
+    let c = await call.newuac( options )
+
+
+    /* no default configured */
+    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( '"" <sip:012345789@localhost.localdomain>' )
+
+    c._onhangup( "wire" )
+
+  } )
 } )
