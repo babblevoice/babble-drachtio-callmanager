@@ -46,9 +46,30 @@ describe( "xfer", function() {
 
   } )
 
-  it( `call blind xfer 2 leg no auth`, async function() {
+  it( `call blind xfer 2 leg auth`, async function() {
+
+    /*
+    Client a                           Us                             Client b
+    |--------------INVITE ------------>|                                  |(1)
+    |<-------------407 proxy auth------|                                  |(2)
+    |--------------INVITE w auth ----->|                                  |(3)
+    |<-------------200 ok--------------|                                  |(4)
+    |                                  |--------------INVITE ------------>|(5)
+    |                                  |<-------------200 ok--------------|(6)
+    |                                  |<-------------REFER --------------|(7)
+    |                                  |--------------202 --------------->|(8)
+    |                                  |--------------NOTIFY (100)------->|(9)
+    |                                  |<-------------200 ----------------|(10)
+    |                                  |--------------NOTIFY (200)------->|(11)
+    |                                  |<-------------200 ----------------|(12)
+    em.emit( "call.new", call )
+    */
 
     let srfscenario = new srf.srfscenario()
+    let referedcall
+    srfscenario.options.em.on( "call.new", ( r ) => {
+      referedcall = r
+    } )
 
     let call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
@@ -69,19 +90,26 @@ describe( "xfer", function() {
     await call.answer()
     let child = await call.newuac( { "contact": "1000@dummy" } )
 
-    call._dialog.callbacks.refer( req, res )
+    await child._dialog.callbacks.refer( req, res )
 
     await call.hangup()
 
     expect( call.hangup_cause.sip ).equal( 487 )
-    expect( call.hangup_cause.src ).equal( "wire" )
-    expect( call.hangup_cause.reason ).equal( "BLIND_TRANSFER" )
+    expect( call.hangup_cause.src ).equal( "us" )
+    expect( call.hangup_cause.reason ).equal( "NORMAL_CLEARING" )
+    expect( child.hangup_cause.reason ).equal( "BLIND_TRANSFER" )
 
     expect( sipcodesent ).to.equal( 202 )
 
-    expect( child.state.refered ).to.be.true
-    /* a final hangup outside of the xfer */
-    child.hangup()
+    /* should be the same call */
+    expect( call.state.refered ).to.be.true
+    expect( referedcall.state.refered ).to.be.true
+    expect( referedcall.referingtouri ).to.equal( "sip:alice@atlanta.example.com" )
+
+    expect( referedcall.referedby.uuid ).to.equal( child.uuid )
+
+    /* the child (the xferer) finishes with sending BYE */
+    child._onhangup( "wire" )
 
   } )
 

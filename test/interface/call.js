@@ -35,6 +35,11 @@ describe( "call object", function() {
 
     let srfscenario = new srf.srfscenario()
 
+    let newcallcalled = false
+    srfscenario.options.em.on( "call.new", ( /*newcall*/ ) => {
+      newcallcalled = true
+    } )
+
     let call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
@@ -54,6 +59,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
+    expect( newcallcalled ).to.be.true
     expect( call ).to.have.property( "uuid" ).that.is.a( "string" )
     expect( call ).to.have.property( "type" ).that.is.a( "string" ).to.equal( "uas" )
     expect( call ).to.have.property( "state" ).that.is.a( "object" )
