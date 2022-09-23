@@ -66,14 +66,20 @@ describe( "xfer", function() {
     */
 
     let srfscenario = new srf.srfscenario()
-    let referedcall
-    srfscenario.options.em.on( "call.new", ( r ) => {
-      referedcall = r
-    } )
 
     let call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
+    } )
+
+    let referedcall
+    call.on( "call.referred", ( r ) => {
+      referedcall = r
+    } )
+
+    let globalev
+    srfscenario.options.em.on( "call.referred", ( r ) => {
+      globalev = r
     } )
 
     let req = new srf.req( new srf.options() )
@@ -107,6 +113,7 @@ describe( "xfer", function() {
     expect( referedcall.referingtouri ).to.equal( "sip:alice@atlanta.example.com" )
 
     expect( referedcall.referedby.uuid ).to.equal( child.uuid )
+    expect( globalev.referedby.uuid ).to.equal( child.uuid )
 
     /* the child (the xferer) finishes with sending BYE */
     child._onhangup( "wire" )
