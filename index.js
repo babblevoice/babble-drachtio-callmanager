@@ -12,7 +12,8 @@ const default_options = {
   "seexpire": 120000, /* session expires timeout */
   "rfc2833": true,  /* Enable RFC 2833 - DTMF */
   "late": false,  /* Late negotiation */
-  "registrar": false /* our registrar object or falsey */
+  "registrar": false, /* our registrar object or falsey */
+  "referauthrequired": true
 }
 
 /**

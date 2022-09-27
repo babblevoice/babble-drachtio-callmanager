@@ -46,7 +46,7 @@ describe( "xfer", function() {
 
   } )
 
-  it( `call blind xfer 2 leg auth`, async function() {
+  it( `call blind xfer 2 leg no auth`, async function() {
 
     /*
     Client a                           Us                             Client b
@@ -62,7 +62,7 @@ describe( "xfer", function() {
     |                                  |<-------------200 ----------------|(10)
     |                                  |--------------NOTIFY (200)------->|(11)
     |                                  |<-------------200 ----------------|(12)
-    em.emit( "call.new", call )
+    em.emit( "call.referred", call )
     */
 
     let srfscenario = new srf.srfscenario()
@@ -95,6 +95,7 @@ describe( "xfer", function() {
 
     await call.answer()
     let child = await call.newuac( { "contact": "1000@dummy" } )
+    child.referauthrequired = false
 
     await child._dialog.callbacks.refer( req, res )
 
@@ -114,6 +115,153 @@ describe( "xfer", function() {
 
     expect( referedcall.referedby.uuid ).to.equal( child.uuid )
     expect( globalev.referedby.uuid ).to.equal( child.uuid )
+
+    /* the child (the xferer) finishes with sending BYE */
+    child._onhangup( "wire" )
+
+  } )
+
+  it( `call blind xfer 2 leg auth`, async function() {
+
+    /*
+    Client a                           Us                             Client b
+    |                                  |<--------------INVITE ------------|(1)
+    |                                  |---------------407 auth --------->|(2)
+    |                                  |<--------------200 ok-------------|(3)
+    |                                  |<--------------INVITE w auth------|(4)
+    |                                  |---------------200 ok------------>|(5)
+    |<-------------INVITE -------------|                                  |(5)
+    |--------------407 proxy auth----->|                                  |(6)
+    |<-------------INVITE w auth ------|                                  |(7)
+    |--------------200 ok------------->|                                  |(8)
+    |                                  |<--------------REFER -------------|(9)
+    |                                  |---------------407 -------------->|(10)
+    |                                  |<--------------REFER w auth ------|(11)
+    |                                  |---------------202 -------------->|(12)
+    |                                  |---------------NOTIFY (100)------>|(13)
+    |                                  |<--------------200 ---------------|(14)
+    |                                  |---------------NOTIFY (200)------>|(15)
+    |                                  |<--------------200 ---------------|(16)
+    em.emit( "call.referred", call )
+    */
+
+    /* Step 1-4 */
+    let options = {
+      "userlookup": async ( username, realm ) => {
+        return {
+          "secret": "zanzibar",
+          "username": username,
+          "realm": realm
+        }
+      }
+    }
+
+    let srfscenario = new srf.srfscenario( options )
+
+    let eventhappened = false
+    srfscenario.options.em.on( "call.authed", ( c ) => {
+      expect( c ).to.be.an.instanceof( call )
+      expect( c.type ).to.be.an( "string" ).to.be.equal( "uas" )
+      eventhappened = true
+    } )
+
+    let c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => {
+        resolve( call )
+      } )
+      srfscenario.inbound()
+    } )
+
+    let onsendcount = 0
+    /* mock -
+    auth example from https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01 3.3*/
+    c._req.msg.uri = "sip:bob@biloxi.com"
+    c._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
+    c._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+    c._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
+    c._res.onsend( ( code, msg ) => {
+
+      if( 407 == code ) {
+        let request = msg.headers[ "Proxy-Authenticate" ]
+
+        /* The items a uac will add */
+        request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
+        request += ` uri="sip:bob@biloxi.com",`
+        request += ` response="89eb0059246c02b2f6ee02c7961d5ea3"`
+
+        srfscenario.req.set( "Proxy-Authorization", request )
+        c._onauth( srfscenario.req, srfscenario.res )
+
+      }
+
+      onsendcount++
+    } )
+
+    let referedcall
+    c.on( "call.referred", ( r ) => {
+      referedcall = r
+    } )
+
+    await c.auth()
+    await c.answer()
+
+    /* Step 5-8 */
+    let child = await c.newuac( { "contact": "1000@dummy" } )
+
+    /* Step 9-16 */
+    let req = new srf.req( new srf.options() )
+    let res = new srf.res()
+
+    req.setparsedheader( "refer-to", { "uri": "sip:alice@atlanta.example.com" } )
+
+    let sipcodesent, msgsent
+
+    req.msg.uri = "sip:bob@biloxi.com"
+    req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
+    child._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+    child._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+    res.onsend( ( code, msg ) => {
+
+      if( 407 == code ) {
+
+        let request = msg.headers[ "Proxy-Authenticate" ]
+
+        /* The items a uac will add */
+        request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
+        request += ` uri="sip:bob@biloxi.com",`
+        request += ` response="89eb0059246c02b2f6ee02c7961d5ea3"`
+
+        req.set( "Proxy-Authorization", request )
+
+        /* make the test for auth simple by breaking nonce count check */
+        child._auth._nonceuses = 0
+
+        /* Step 10. auth response */
+        child._onauth( srfscenario.req, srfscenario.res )
+        return
+
+      }
+      sipcodesent = code
+    } )
+
+    await child._dialog.callbacks.refer( req, res )
+
+    await c.hangup()
+
+    expect( c.hangup_cause.sip ).equal( 487 )
+    expect( c.hangup_cause.src ).equal( "us" )
+    expect( c.hangup_cause.reason ).equal( "NORMAL_CLEARING" )
+    expect( child.hangup_cause.reason ).equal( "BLIND_TRANSFER" )
+
+    expect( sipcodesent ).to.equal( 202 )
+
+    /* should be the same call */
+    expect( c.state.refered ).to.be.true
+    expect( referedcall.state.refered ).to.be.true
+    expect( referedcall.referingtouri ).to.equal( "sip:alice@atlanta.example.com" )
+
+    expect( referedcall.referedby.uuid ).to.equal( child.uuid )
 
     /* the child (the xferer) finishes with sending BYE */
     child._onhangup( "wire" )
@@ -162,6 +310,7 @@ describe( "xfer", function() {
     let referto = `sip:1000@dummy.com?Replaces=${callid}%3Bto-tag%3D${totag}%3Bfrom-tag%3D${fromtag}`
     req.setparsedheader( "refer-to", { "uri": referto } )
 
+    b_2.referauthrequired = false
     await b_2._dialog.callbacks.refer( req, res )
 
     /* As part of the process the b_2 client will send us a hangup */
