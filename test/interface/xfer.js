@@ -177,13 +177,17 @@ describe( "xfer", function() {
     auth example from https://datatracker.ietf.org/doc/html/draft-smith-sipping-auth-examples-01 3.3*/
     c._req.msg.uri = "sip:bob@biloxi.com"
     c._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
-    c._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
-    c._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
 
     c._res.onsend( ( code, msg ) => {
 
       if( 407 == code ) {
-        let request = msg.headers[ "Proxy-Authenticate" ]
+
+        c._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+        c._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
+        /* We would normally look here to get nonce and opaque - howevere we are frigging it */
+        //let request = msg.headers[ "Proxy-Authenticate" ]
+        let request = `Digest realm="biloxi.com", algorithm=MD5, qop="auth", nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", opaque="5ccc069c403ebaf9f0171e9517f40e41", stale=false`
 
         /* The items a uac will add */
         request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
@@ -219,13 +223,17 @@ describe( "xfer", function() {
 
     req.msg.uri = "sip:bob@biloxi.com"
     req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
-    child._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
-    child._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
     res.onsend( ( code, msg ) => {
 
       if( 407 == code ) {
 
-        let request = msg.headers[ "Proxy-Authenticate" ]
+        child._auth._nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+        child._auth._opaque = "5ccc069c403ebaf9f0171e9517f40e41"
+
+         /* We would normally look here to get nonce and opaque - howevere we are frigging it */
+        //let request = msg.headers[ "Proxy-Authenticate" ]
+        let request = `Digest realm="biloxi.com", algorithm=MD5, qop="auth", nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", opaque="5ccc069c403ebaf9f0171e9517f40e41", stale=false`
 
         /* The items a uac will add */
         request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
