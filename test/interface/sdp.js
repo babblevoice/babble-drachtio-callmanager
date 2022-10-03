@@ -330,4 +330,41 @@ a=rtpmap:8 PCMA/8000`
     expect( def.remote.port ).to.equal( 48380 )
     expect( def.remote.codec ).to.equal( 8 )
   } )
+
+  it( `another real life example`, async function() {
+    const testsdp = `v=0
+o=MTLSBC 1664810796 1664810796 IN IP4 213.166.4.133
+s=SIP Call
+c=IN IP4 213.166.4.133
+t=0 0
+m=audio 52290 RTP/AVP 8 101 13 0 3 18
+a=rtpmap:8 PCMA/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:3 GSM/8000
+a=rtpmap:18 G729/8000
+a=fmtp:18 annexb=no
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=rtpmap:13 CN/8000
+a=ptime:20`
+
+    let oursdp = sdp.create( testsdp )
+
+    let selectedcodec = oursdp.intersection( "g722", true )
+    console.log("selectedcodec",selectedcodec)
+    return
+    selectedcodec = oursdp.intersection( "g722", true )
+    let remoteaudio = oursdp.getaudio()
+
+    oursdp.select( selectedcodec )
+
+    let ourlocalsdp = sdp.create()
+                .addcodecs( selectedcodec )
+                .addcodecs( "2833" )
+                .setconnectionaddress( "1.1.1.1" )
+                .setaudioport( 1000 )
+
+    console.log(ourlocalsdp.toString())
+
+  } )
 } )
