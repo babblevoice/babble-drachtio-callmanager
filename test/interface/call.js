@@ -99,6 +99,9 @@ describe( "call object", function() {
 
     expect( call.state.cleaned ).to.be.true
 
+    /* defaults are loaded from call manager */
+    expect( call.options.preferedcodecs ).to.equal( "g722 ilbc pcmu pcma" )
+
   } )
 
   it( `uas.newuac - create uac`, async function() {
