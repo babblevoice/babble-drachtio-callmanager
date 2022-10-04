@@ -292,6 +292,9 @@ describe( "xfer", function() {
       srfscenario.inbound()
     } )
 
+    /* needed for _dialog.on... */
+    await b_2.answer()
+
     let c_1 = await b_2.newuac( { "contact": "1001@dummy" } )
 
     /* now we refer b_2 to b_1 */

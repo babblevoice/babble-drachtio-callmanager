@@ -448,8 +448,8 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     expect( channelmessages[ 2 ].remote.address ).to.equal( "82.19.206.102" )
     expect( channelmessages[ 3 ].channel ).to.equal( "mix" )
 
+    expect( channelmessages[ 6 ].channel ).to.equal( "close" )
     expect( channelmessages[ 7 ].channel ).to.equal( "close" )
-    expect( channelmessages[ 8 ].channel ).to.equal( "close" )
 
     expect( msginfo.body ).to.include( "UDP/TLS/RTP/SAVPF" )
 
