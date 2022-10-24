@@ -311,15 +311,20 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
   it( `Create call and send 183 - early - SAVPF and 200 ok`, async () => {
 
-    /*
-    Phone (SAVPF)         BV                   Gateway
-    |---------INVITE------>|                      |(1)
-    |                      |---------INVITE------>|(2)
-    |                      |<--------183 (w-sdp)--|(3)
-    |<--------183 (w-sdp)--|                      |(4)
-    |                      |<--------200 (w-sdp)--|(5)
-    |<--------200 (w-sdp)--|                      |(6)
-    */
+    /**
+     * Markdown - mermaid
+       sequenceDiagram
+        participant Phone
+        participant babble
+        participant Gateway
+
+        Phone->>babble: INVITE (1)
+        babble->>Gateway: INVITE (2)
+        Gateway->>babble: 183 w-sdp (3)
+        babble->>Phone: 183 w-sdp (4)
+        Gateway->>babble: Ok w-sdp (200)(5)
+        babble->>Phone: Ok w-sdp (200) (6)
+     */
 
     /* Setup the mock RTP server */ 
     let srfscenario = new srf.srfscenario( { savpf: true } )
@@ -447,9 +452,10 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     expect( channelmessages[ 2 ].remote.port ).to.equal( 48356 )
     expect( channelmessages[ 2 ].remote.address ).to.equal( "82.19.206.102" )
     expect( channelmessages[ 3 ].channel ).to.equal( "mix" )
-
-    expect( channelmessages[ 6 ].channel ).to.equal( "close" )
+    /* with 183 we now get a second duplicate mix - this could be tidied but it is safe */
+    expect( channelmessages[ 6 ].channel ).to.equal( "mix" )
     expect( channelmessages[ 7 ].channel ).to.equal( "close" )
+    expect( channelmessages[ 8 ].channel ).to.equal( "close" )
 
     expect( msginfo.body ).to.include( "UDP/TLS/RTP/SAVPF" )
 

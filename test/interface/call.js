@@ -205,7 +205,7 @@ describe( "call object", function() {
     expect( call.state.cleaned ).to.be.true
   } )
 
-  it( `uas.newuac - create uac by entity with registrar #123`, async function() {
+  it( `uas.newuac - create uac by entity with registrar`, async function() {
 
     let options = {
       "registrar": {
@@ -228,6 +228,15 @@ describe( "call object", function() {
       srfscenario.inbound()
     } )
 
+    call._req.setparsedheader( "remote-party-id", {
+      "name": "",
+      "uri": "",
+      "user": "0123456789",
+      "host": "someotherrealm.com",
+      "params": { "privacy": false },
+      "type": "callerid"
+    } )
+
     let child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
 
     expect( await callstore.stats() ).to.deep.include( {
@@ -248,7 +257,7 @@ describe( "call object", function() {
     child.update()
 
     expect( requestoptions.method ).to.equal( "update" )
-    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:1000@dummy.com>` )
+    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:0123456789@someotherrealm.com>` )
 
     await call.hangup()
 
