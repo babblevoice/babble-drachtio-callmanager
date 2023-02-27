@@ -64,7 +64,7 @@ describe( "callmanager", function() {
       "srf": { "use": ( method, asynccb ) => {} }
     }
 
-    let rtpserver = callmanager.projectrtp.proxy.listen()
+    let rtpserver = await callmanager.projectrtp.proxy.listen()
     let c = await callmanager.callmanager( options )
 
     let closing = false
