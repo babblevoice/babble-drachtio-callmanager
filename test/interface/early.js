@@ -38,7 +38,7 @@ describe( "call early", function() {
 
     /* Setup the mock RTP server */ 
     let srfscenario = new srf.srfscenario()
-    let rtpserver = callmanager.projectrtp.proxy.listen()
+    let rtpserver = await callmanager.projectrtp.proxy.listen()
 
     let connection = net.createConnection( 9002, "127.0.0.1" )
       .on( "error", ( e ) => {
@@ -87,7 +87,8 @@ describe( "call early", function() {
             }
             opencount++
           } else if ( "close" === msg.channel ) {
-            connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}} ) )
+            connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}
+          } ) )
           } else if ( "mix" === msg.channel ) {
             mixing = true
           }
@@ -175,7 +176,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     /* Setup the mock RTP server */ 
     let srfscenario = new srf.srfscenario( { savpf: true } )
-    let rtpserver = callmanager.projectrtp.proxy.listen()
+    let rtpserver = await callmanager.projectrtp.proxy.listen()
 
     let connection = net.createConnection( 9002, "127.0.0.1" )
       .on( "error", ( e ) => {
@@ -224,7 +225,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
             }
             opencount++
           } else if ( "close" === msg.channel ) {
-            connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}} ) )
+            connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}}))
           } else if ( "mix" === msg.channel ) {
             mixing = true
           }
@@ -328,7 +329,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     /* Setup the mock RTP server */ 
     let srfscenario = new srf.srfscenario( { savpf: true } )
-    let rtpserver = callmanager.projectrtp.proxy.listen()
+    let rtpserver = await callmanager.projectrtp.proxy.listen()
 
     let connection = net.createConnection( 9002, "127.0.0.1" )
       .on( "error", ( e ) => {
@@ -377,7 +378,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
             }
             opencount++
           } else if ( "close" === msg.channel ) {
-            connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}} ) )
+            connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}} ) )
           } else if ( "mix" === msg.channel ) {
             mixing = true
           }
