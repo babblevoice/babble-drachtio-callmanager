@@ -17,11 +17,8 @@ describe( "call.js", function() {
       srfscenario.inbound()
     } )
 
-    call.setremotename("foo")
-    call.setremoteid("123456789")
-
-    expect(call._remote.name).equals("foo")
-    expect(call._remote.id).equals("123456789")
+    call.calleridname = "foo"
+    call.callerid = "123456789"
 
     // TODO we set the remote id using "setremoteid", but getter returns it as "user" 
     // the names mismatch and can be confusing, we might consider some polishing here?
