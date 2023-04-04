@@ -3,7 +3,11 @@ const callstore = require( "../../lib/store.js" )
 
 describe( "callmanager - store", function() {
 
-  afterEach( function() {
+  beforeEach( function() {
+    callstore.clear()
+  } )
+
+  this.afterEach( function() {
     callstore.clear()
   } )
 
