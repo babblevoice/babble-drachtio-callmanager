@@ -1,5 +1,4 @@
 
-const assert = require( "assert" )
 const callmanager = require( "./lib/callmanager.js" )
 const store = require( "./lib/store.js" )
 
@@ -9,7 +8,7 @@ const default_options = {
   "preferedcodecs": "g722 ilbc pcmu pcma",
   //"transcode": true, - this never made it into the software - TODO
   "uactimeout": 30000, /* timeout when calling a client */
-  "seexpire": 120000, /* session expires timeout */
+  "seexpire": 120000, /* session expires timeout mS */
   "rfc2833": true,  /* Enable RFC 2833 - DTMF */
   "late": false,  /* Late negotiation */
   "registrar": false, /* our registrar object or falsey */
@@ -21,7 +20,7 @@ const default_options = {
 @returns { callmanager }
 */
 module.exports.callmanager = ( options ) => {
-  let ouroptions = { ...default_options, ...options }
+  const ouroptions = { ...default_options, ...options }
   return callmanager.callmanager( ouroptions )
 }
 
@@ -43,4 +42,4 @@ module.exports.store = store
 /**
  * Call
  */
- module.exports.call = callmanager.call
+module.exports.call = callmanager.call
