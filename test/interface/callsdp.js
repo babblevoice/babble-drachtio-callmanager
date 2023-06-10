@@ -4,21 +4,21 @@ const srf = require( "../mock/srf.js" )
 
 
 describe( "call sdp generation", function() {
-  it( `uas.newuac - check sdp`, async function() {
+  it( "uas.newuac - check sdp", async function() {
 
     /* We are presented with sdp contained in the mock srf file */
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
-    let localsdp = []
+    const localsdp = []
     srfscenario.oncreateUAS( ( req, res, options ) => {
       localsdp.push( options.localSdp )
       return new srf.dialog()
     } )
 
     let callnumber = 0
-    let callcount = 6
-    let codecsselected = []
-    let c = await new Promise( ( done ) => {
+    const callcount = 6
+    const codecsselected = []
+    const c = await new Promise( ( done ) => {
       srfscenario.oncall( async ( call ) => {
         await call.answer()
 

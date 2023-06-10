@@ -31,16 +31,16 @@ describe( "call object", function() {
     clearcallmanager()
   } )
 
-  it( `uas.newuac - create uas`, async function() {
+  it( "uas.newuac - create uas", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
     let newcallcalled = false
     srfscenario.options.em.on( "call.new", ( /*newcall*/ ) => {
       newcallcalled = true
     } )
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -104,11 +104,11 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - create uac`, async function() {
+  it( "uas.newuac - create uac", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -119,7 +119,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( { "contact": "1000@dummy" } )
+    const child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -177,15 +177,15 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - create uac by entity no registrar`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "uas.newuac - create uac by entity no registrar", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
-    let child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+    const child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
     expect( child ).to.be.false
 
     expect( await callstore.stats() ).to.deep.include( {
@@ -205,9 +205,9 @@ describe( "call object", function() {
     expect( call.state.cleaned ).to.be.true
   } )
 
-  it( `uas.newuac - create uac by entity with registrar`, async function() {
+  it( "uas.newuac - create uac by entity with registrar", async function() {
 
-    let options = {
+    const options = {
       "registrar": {
         "contacts": async ( entity ) => {
           return {
@@ -221,9 +221,9 @@ describe( "call object", function() {
       }
     }
 
-    let srfscenario = new srf.srfscenario( options )
+    const srfscenario = new srf.srfscenario( options )
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -237,7 +237,7 @@ describe( "call object", function() {
       "type": "callerid"
     } )
 
-    let child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+    const child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -245,7 +245,7 @@ describe( "call object", function() {
       "storebyentity": 1
     } )
 
-    let e = await child.entity
+    const e = await child.entity
     expect( e.ccc ).to.equal( 1 )
 
     /* mock */
@@ -257,7 +257,7 @@ describe( "call object", function() {
     child.update()
 
     expect( requestoptions.method ).to.equal( "update" )
-    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"" <sip:0123456789@someotherrealm.com>` )
+    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( "\"\" <sip:0123456789@someotherrealm.com>" )
 
     await call.hangup()
 
@@ -274,9 +274,9 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - create uac by entity with max limit and registrar`, async function() {
+  it( "uas.newuac - create uac by entity with max limit and registrar", async function() {
 
-    let options = {
+    const options = {
       "registrar": {
         "contacts": async ( entity ) => {
           return {
@@ -290,15 +290,15 @@ describe( "call object", function() {
       }
     }
 
-    let srfscenario = new srf.srfscenario( options )
+    const srfscenario = new srf.srfscenario( options )
 
-    let inboundcall = await new Promise( ( resolve ) => {
+    const inboundcall = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
-    let child = await inboundcall.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
-    let child2 = await call.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
+    const child = await inboundcall.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
+    const child2 = await call.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -306,7 +306,7 @@ describe( "call object", function() {
       "storebyentity": 1
     } )
 
-    let child3 = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+    const child3 = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 3,
@@ -331,11 +331,11 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac detatch from parent`, async function() {
+  it( "uas.newuac detatch from parent", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -346,7 +346,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( { "contact": "1000@dummy" } )
+    const child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -375,22 +375,22 @@ describe( "call object", function() {
     expect( child.state.cleaned ).to.be.true
   } )
 
-  it( `uas.newuac - 486`, async function() {
+  it( "uas.newuac - 486", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
     srfscenario.oncreateUAC( () => {
       throw { "status": 486 }
     } )
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
-    let children = [] 
-    let child = await call.newuac( { "contact": "1000@dummy" }, { "early": ( c ) => {
-        children.push( c )
-      }
+    const children = [] 
+    const child = await call.newuac( { "contact": "1000@dummy" }, { "early": ( c ) => {
+      children.push( c )
+    }
     } )
 
     expect( children.length ).to.equal( 1 )
@@ -416,20 +416,20 @@ describe( "call object", function() {
   } )
 
 
-  it( `uas.newuac - timeout`, async function() {
+  it( "uas.newuac - timeout", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
     srfscenario.options.srf.newuactimeout = 20 /* longer than our uactimeout */
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
-    let children = [] 
-    let child = await call.newuac( { "contact": "1000@dummy", "uactimeout": 10 }, { "early": ( c ) => {
-        children.push( c )
-      }
+    const children = [] 
+    const child = await call.newuac( { "contact": "1000@dummy", "uactimeout": 10 }, { "early": ( c ) => {
+      children.push( c )
+    }
     } ) /* overide default - very short */
 
     expect( child.destroyed ).to.be.true
@@ -458,11 +458,11 @@ describe( "call object", function() {
     expect( child.state.cleaned ).to.be.true
   } )
 
-  it( `uas.newuac - child remote hangup`, async function() {
+  it( "uas.newuac - child remote hangup", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -473,7 +473,7 @@ describe( "call object", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( { "contact": "1000@dummy" } )
+    const child = await call.newuac( { "contact": "1000@dummy" } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -513,9 +513,9 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - new call event`, async function() {
+  it( "uas.newuac - new call event", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
     let eventhappened = false
     srfscenario.options.em.on( "call.new", ( c ) => {
@@ -533,9 +533,9 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - ringing event`, async function() {
+  it( "uas.newuac - ringing event", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
     let eventhappened = false
     srfscenario.options.em.on( "call.ringing", ( c ) => {
@@ -545,7 +545,7 @@ describe( "call object", function() {
 
     } )
 
-    let c = await new Promise( ( resolve ) => {
+    const c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -557,13 +557,13 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - destroyed event`, async function() {
+  it( "uas.newuac - destroyed event", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
     let eventhappened = false
 
-    let c = await new Promise( ( resolve ) => {
+    const c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -577,9 +577,9 @@ describe( "call object", function() {
     expect( eventhappened ).to.be.true
   } )
 
-  it( `uas.newuac - answered and destroyed event`, async function() {
+  it( "uas.newuac - answered and destroyed event", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
     let eventhappened = false
     srfscenario.options.em.on( "call.answered", ( c ) => {
@@ -592,7 +592,7 @@ describe( "call object", function() {
       eventhappened = false
     } )
 
-    let c = await new Promise( ( resolve ) => {
+    const c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -607,9 +607,9 @@ describe( "call object", function() {
     expect( eventhappened ).to.be.false
   } )
 
-  it( `uas.newuac - authed event`, async function() {
+  it( "uas.newuac - authed event", async function() {
 
-    let options = {
+    const options = {
       "userlookup": async ( username, realm ) => {
         return {
           "secret": "zanzibar",
@@ -619,7 +619,7 @@ describe( "call object", function() {
       }
     }
 
-    let srfscenario = new srf.srfscenario( options )
+    const srfscenario = new srf.srfscenario( options )
 
     let eventhappened = false
     srfscenario.options.em.on( "call.authed", ( c ) => {
@@ -628,7 +628,7 @@ describe( "call object", function() {
       eventhappened = true
     } )
 
-    let c = await new Promise( ( resolve ) => {
+    const c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => {
         resolve( call )
       } )
@@ -650,12 +650,12 @@ describe( "call object", function() {
         
         /* We would normally look here to get nonce and opaque - howevere we are frigging it */
         //let request = msg.headers[ "Proxy-Authenticate" ]
-        let request = `Digest realm="biloxi.com", algorithm=MD5, qop="auth", nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", opaque="5ccc069c403ebaf9f0171e9517f40e41", stale=false`
+        let request = "Digest realm=\"biloxi.com\", algorithm=MD5, qop=\"auth\", nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\", opaque=\"5ccc069c403ebaf9f0171e9517f40e41\", stale=false"
 
         /* The items a uac will add */
-        request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
-        request += ` uri="sip:bob@biloxi.com",`
-        request += ` response="89eb0059246c02b2f6ee02c7961d5ea3"`
+        request += ", username=\"bob\", nc=00000001,cnonce=\"0a4f113b\","
+        request += " uri=\"sip:bob@biloxi.com\","
+        request += " response=\"89eb0059246c02b2f6ee02c7961d5ea3\""
 
         srfscenario.req.set( "Proxy-Authorization", request )
 
@@ -682,7 +682,7 @@ describe( "call object", function() {
     expect( c.hangup_cause.src ).to.equal( "us" )
     expect( c.state.destroyed ).to.equal( true )
     expect( c.state.authed ).to.equal( true )
-    let e = await c.entity
+    const e = await c.entity
     expect( e.username ).to.equal( "bob" )
     expect( e.realm ).to.equal( "biloxi.com" )
     expect( e.uri ).to.equal( "bob@biloxi.com" )
@@ -690,9 +690,9 @@ describe( "call object", function() {
 
   } )
 
-  it( `uas.newuac - auth failed`, async function() {
+  it( "uas.newuac - auth failed", async function() {
 
-    let options = {
+    const options = {
       "userlookup": async ( username, realm ) => {
         return {
           "secret": "zanzibar",
@@ -702,7 +702,7 @@ describe( "call object", function() {
       }
     }
 
-    let srfscenario = new srf.srfscenario( options )
+    const srfscenario = new srf.srfscenario( options )
 
     let eventhappened = false
     srfscenario.options.em.on( "call.authed.failed", ( c ) => {
@@ -711,7 +711,7 @@ describe( "call object", function() {
       eventhappened = true
     } )
 
-    let c = await new Promise( ( resolve ) => {
+    const c = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => {
 
         let onsendcount = 0
@@ -728,9 +728,9 @@ describe( "call object", function() {
             let request = msg.headers[ "Proxy-Authenticate" ]
 
             /* The items a uac will add */
-            request += `, username="bob", nc=00000001,cnonce="0a4f113b",`
-            request += ` uri="sip:bob@biloxi.com",`
-            request += ` response="89eb0059246c02b2f6ee02c7961d5ea"`
+            request += ", username=\"bob\", nc=00000001,cnonce=\"0a4f113b\","
+            request += " uri=\"sip:bob@biloxi.com\","
+            request += " response=\"89eb0059246c02b2f6ee02c7961d5ea\""
 
             srfscenario.req.set( "Proxy-Authorization", request )
 
@@ -759,9 +759,9 @@ describe( "call object", function() {
     expect( c.state.authed ).to.equal( false )
   } )
 
-  it( `uas.newuac - caller id set correctly`, async function() {
+  it( "uas.newuac - caller id set correctly", async function() {
 
-    let srfscenario = new srf.srfscenario( {} )
+    const srfscenario = new srf.srfscenario( {} )
 
     let createuacoptions
     srfscenario.oncreateUAC( ( contact, options, callbacks ) => {
@@ -769,59 +769,59 @@ describe( "call object", function() {
 
     } )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "Remote-Party-ID" ] ).to.equal( `"" <sip:0000000000@localhost.localdomain>` )
+    expect( createuacoptions.headers[ "Remote-Party-ID" ] ).to.equal( "\"\" <sip:0000000000@localhost.localdomain>" )
     expect( createuacoptions.noAck ).to.be.true
   } )
 
-  it( `uas.newuac - early callback is called`, async function() {
+  it( "uas.newuac - early callback is called", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
     let earlycallbackcalled = false
-    let c = await call.newuac( options, { "early": ( c ) => earlycallbackcalled = true } )
+    const c = await call.newuac( options, { "early": ( c ) => earlycallbackcalled = true } )
 
     c.hangup()
 
     expect( earlycallbackcalled ).to.be.true
   } )
 
-  it( `uas.newuac - confirmed callback is called`, async function() {
+  it( "uas.newuac - confirmed callback is called", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
     let earlycallbackcalled = false
-    let c = await call.newuac( options, { "confirm": ( c ) => earlycallbackcalled = true } )
+    const c = await call.newuac( options, { "confirm": ( c ) => earlycallbackcalled = true } )
 
     c.hangup()
 
     expect( earlycallbackcalled ).to.be.true
   } )
 
-  it( `uas.newuac - simple update`, async function() {
+  it( "uas.newuac - simple update", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let earlycallbackcalled = false
-    let c = await call.newuac( options )
+    const earlycallbackcalled = false
+    const c = await call.newuac( options )
 
     /* mock */
     c._req.set( "ALLOW", "INVITE, UPDATE, OPTIONS" )
@@ -838,26 +838,26 @@ describe( "call object", function() {
 
     expect( requestoptions.method ).to.equal( "update" )
     expect( requestoptions.body ).to.be.a( "string" )
-    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( `"Kermit" <sip:kermy@muppetshow.com>` )
+    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( "\"Kermit\" <sip:kermy@muppetshow.com>" )
 
   } )
 
-  it( `uas.newuac - simple update - but don't allow as not in allow`, async function() {
+  it( "uas.newuac - simple update - but don't allow as not in allow", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let earlycallbackcalled = false
-    let c = await call.newuac( options )
+    const earlycallbackcalled = false
+    const c = await call.newuac( options )
 
     /* mock */
     let requestoptions = false
     c._dialog.on( "request", ( options ) => requestoptions = options )
 
-    let returnedval = await c.update( { "remote": {
+    const returnedval = await c.update( { "remote": {
       "display": "Kermit",
       "realm": "muppetshow.com",
       "username": "kermy"
@@ -869,15 +869,15 @@ describe( "call object", function() {
     expect( requestoptions ).to.be.false
   } )
 
-  it( `Test listen and emit event on call object`, async function() {
+  it( "Test listen and emit event on call object", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     let eventfired = false
     c.on( "somerandomevent", ( ob ) => {
@@ -892,15 +892,15 @@ describe( "call object", function() {
 
   } )
 
-  it( `Test listen and emit event on and removealllisteners call object`, async function() {
+  it( "Test listen and emit event on and removealllisteners call object", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     let eventfired = 0
     c.on( "somerandomevent", ( ob ) => {
@@ -918,15 +918,15 @@ describe( "call object", function() {
 
   } )
 
-  it( `Test listen and emit event on and removealllisteners (none specified) call object`, async function() {
+  it( "Test listen and emit event on and removealllisteners (none specified) call object", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     let eventfired = 0
     c.on( "somerandomevent", ( ob ) => {
@@ -944,19 +944,19 @@ describe( "call object", function() {
 
   } )
 
-  it( `Test listen and emit event on and off call object`, async function() {
+  it( "Test listen and emit event on and off call object", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     let eventfired = 0
 
-    let ourcb = ( ob ) => {
+    const ourcb = ( ob ) => {
       if( "hello" === ob.vars.xinfo ) eventfired++
     }
     c.on( "somerandomevent", ourcb )
@@ -972,15 +972,15 @@ describe( "call object", function() {
 
   } )
 
-  it( `Test listen and emit event once call object`, async function() {
+  it( "Test listen and emit event once call object", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     let eventfired = 0
     c.once( "somerandomevent", ( ob ) => {
@@ -996,15 +996,15 @@ describe( "call object", function() {
 
   } )
 
-  it( `Test listen and emit call.pick on call object`, async function() {
+  it( "Test listen and emit call.pick on call object", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     let eventfired = false
     c.on( "call.pick", ( callobject ) => {
@@ -1018,11 +1018,11 @@ describe( "call object", function() {
 
   } )
 
-  it( `Create a call and mock rtpengine and ensure we receive events`, async function() {
+  it( "Create a call and mock rtpengine and ensure we receive events", async function() {
     new srf.srfscenario( {} )
-    let rtpserver = await callmanager.projectrtp.proxy.listen()
+    const rtpserver = await callmanager.projectrtp.proxy.listen()
 
-    let connection = net.createConnection( 9002, "127.0.0.1" )
+    const connection = net.createConnection( 9002, "127.0.0.1" )
       .on( "error", ( e ) => {
         console.error( e )
       } )
@@ -1032,7 +1032,7 @@ describe( "call object", function() {
       connection.write( projectrtpmessage.createmessage( {"status":{"channel":{"available":5000,"current":0},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) )
     } )
 
-    let messagestate = projectrtpmessage.newstate()
+    const messagestate = projectrtpmessage.newstate()
     let msgid
     connection.on( "data", ( data ) => {
       projectrtpmessage.parsemessage( messagestate, data, ( msg ) => {
@@ -1050,7 +1050,7 @@ describe( "call object", function() {
     await new Promise( ( resolve ) => setTimeout( () => resolve(), 100 ) )
 
     /* this flow mimicks the flow associated with a voicemail being left */
-    let c = await call.newuac( {
+    const c = await call.newuac( {
       "contact": "ourcontactstring"
     } )
 
@@ -1100,17 +1100,17 @@ describe( "call object", function() {
     await rtpserver.destroy()
   } )
 
-  it( `set get moh`, async function() {
+  it( "set get moh", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "late": true
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
-    let s = {
+    const s = {
       "loop": true,
       "files": [
         { "wav": "some.wav" }
@@ -1128,41 +1128,41 @@ describe( "call object", function() {
 
   } )
 
-  it( `overide caller id name`, async function() {
+  it( "overide caller id name", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "callerid": {
         "name": "Hello"
       }
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
     /* no default configured */
-    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( '"Hello" <sip:0000000000@localhost.localdomain>' )
+    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( "\"Hello\" <sip:0000000000@localhost.localdomain>" )
 
     c._onhangup( "wire" )
 
   } )
 
 
-  it( `overide caller id number`, async function() {
+  it( "overide caller id number", async function() {
     new srf.srfscenario( {} )
 
-    let options = {
+    const options = {
       "contact": "ourcontactstring",
       "callerid": {
         "number": "012345789"
       }
     }
 
-    let c = await call.newuac( options )
+    const c = await call.newuac( options )
 
 
     /* no default configured */
-    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( '"" <sip:012345789@localhost.localdomain>' )
+    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( "\"\" <sip:012345789@localhost.localdomain>" )
 
     c._onhangup( "wire" )
 

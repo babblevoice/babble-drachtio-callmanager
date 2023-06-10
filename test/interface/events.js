@@ -5,10 +5,10 @@ const srf = require( "../mock/srf.js" )
 
 describe( "events", function() {
 
-  it( `send fake events and wait`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "send fake events and wait", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -30,10 +30,10 @@ describe( "events", function() {
 
   } )
 
-  it( `send fake events with clear`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "send fake events with clear", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -62,17 +62,17 @@ describe( "events", function() {
 
   } )
 
-  it( `timeout`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "timeout", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
     await call.answer()
 
-    let events = await call.waitfortelevents( /[0-9A-D\*#]/, 10 )
+    const events = await call.waitfortelevents( /[0-9A-D\*#]/, 10 )
     expect( events ).to.be.undefined
 
     call.hangup()
