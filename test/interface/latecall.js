@@ -24,11 +24,11 @@ describe( "uas.newuac - late", function() {
     clearcallmanager()
   } )
 
-  it( `uas.newuac - create late uac`, async function() {
+  it( "uas.newuac - create late uac", async function() {
 
-    let srfscenario = new srf.srfscenario()
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -39,7 +39,7 @@ describe( "uas.newuac - late", function() {
       "storebyentity": 0
     } )
 
-    let child = await call.newuac( { "contact": "1000@dummy", "late": true } )
+    const child = await call.newuac( { "contact": "1000@dummy", "late": true } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
@@ -92,10 +92,10 @@ describe( "uas.newuac - late", function() {
 
   } )
 
-  it( `uas.newuac - create late uac parent already answered`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "uas.newuac - create late uac parent already answered", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -108,7 +108,7 @@ describe( "uas.newuac - late", function() {
 
     await call.answer()
 
-    let child = await call.newuac( { "contact": "1000@dummy", "late": true } )
+    const child = await call.newuac( { "contact": "1000@dummy", "late": true } )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,

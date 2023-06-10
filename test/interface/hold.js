@@ -19,10 +19,10 @@ describe( "hold", function() {
     clearcallmanager()
   } )
 
-  it( `place call on hold - inactive`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "place call on hold - inactive", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -34,8 +34,8 @@ describe( "hold", function() {
 
     await call.answer()
 
-    let req = new srf.req( new srf.options() )
-    let res = new srf.res()
+    const req = new srf.req( new srf.options() )
+    const res = new srf.res()
 
     let sipcodesent, msgsent
     res.onsend( ( sipcode, msg ) => {
@@ -65,10 +65,10 @@ a=inactive`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     expect( msgsent.body ).to.include( "a=inactive" )
   } )
 
-  it( `place call off hold - inactive`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "place call off hold - inactive", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -80,8 +80,8 @@ a=inactive`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     await call.answer()
 
-    let req = new srf.req( new srf.options() )
-    let res = new srf.res()
+    const req = new srf.req( new srf.options() )
+    const res = new srf.res()
 
     req.msg.body = `v=0
 o=- 1608235282228 0 IN IP4 127.0.0.1
@@ -126,10 +126,10 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
   } )
 
 
-  it( `place call on hold - 0.0.0.0`, async function() {
-    let srfscenario = new srf.srfscenario()
+  it( "place call on hold - 0.0.0.0", async function() {
+    const srfscenario = new srf.srfscenario()
 
-    let call = await new Promise( ( resolve ) => {
+    const call = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
@@ -141,8 +141,8 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     await call.answer()
 
-    let req = new srf.req( new srf.options() )
-    let res = new srf.res()
+    const req = new srf.req( new srf.options() )
+    const res = new srf.res()
 
     let sipcodesent, msgsent
     res.onsend( ( sipcode, msg ) => {

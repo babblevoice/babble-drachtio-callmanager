@@ -17,9 +17,9 @@ describe( "callmanager", function() {
     clearcallmanager()
   } )
 
-  it( `create new callmanager object and present a simple call`, async function() {
+  it( "create new callmanager object and present a simple call", async function() {
 
-    let req = new srf.req()
+    const req = new srf.req()
     req.setparsedheader( "call-id", "1234" )
     req.setparsedheader( "from", {
       "params": {
@@ -29,7 +29,7 @@ describe( "callmanager", function() {
 
     let usecalled = false
     let invitecb = false
-    let options = {
+    const options = {
       "srf": {
         "use": ( method, asynccb ) => {
           invitecb = asynccb
@@ -38,12 +38,12 @@ describe( "callmanager", function() {
         }
       }
     }
-    let c = await callmanager.callmanager( options )
+    const c = await callmanager.callmanager( options )
 
     expect( usecalled ).to.be.true
 
-    let res = {}
-    let next = () => {}
+    const res = {}
+    const next = () => {}
     /* present our pretend call */
     await invitecb( req, res, next )
 
@@ -55,21 +55,21 @@ describe( "callmanager", function() {
     } )
   } )
 
-  it( `create new callmanager object test for listening rtp server`, async function() {
+  it( "create new callmanager object test for listening rtp server", async function() {
 
     this.timeout( 300 )
     this.slow( 200 )
 
-    let options = {
+    const options = {
       "srf": { "use": ( method, asynccb ) => {} }
     }
 
-    let rtpserver = await callmanager.projectrtp.proxy.listen()
-    let c = await callmanager.callmanager( options )
+    const rtpserver = await callmanager.projectrtp.proxy.listen()
+    const c = await callmanager.callmanager( options )
 
     let closing = false
 
-    let connection = net.createConnection( 9002, "127.0.0.1" )
+    const connection = net.createConnection( 9002, "127.0.0.1" )
       .on( "error", () => {
         expect( closing ).to.be.true
       } )
@@ -81,7 +81,7 @@ describe( "callmanager", function() {
     rtpserver.destroy()
   } )
 
-  it( `check hangup codes on main interface`, async function() {
+  it( "check hangup codes on main interface", async function() {
     expect( callmanager ).to.have.property( "hangupcodes" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "PAYMENT_REQUIRED" ).that.is.a( "object" )
     expect( callmanager.hangupcodes ).to.have.property( "FORBIDDEN" ).that.is.a( "object" )
