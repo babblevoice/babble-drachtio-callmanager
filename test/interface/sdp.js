@@ -350,7 +350,7 @@ a=ptime:20`
 
     const oursdp = sdp.create( testsdp )
     const selectedcodec = oursdp.intersection( "g722", true )
-    console.log("selectedcodec",selectedcodec)
+
     /*
     selectedcodec = oursdp.intersection( "g722", true )
     let remoteaudio = oursdp.getaudio()
@@ -365,6 +365,8 @@ a=ptime:20`
 
     console.log(ourlocalsdp.toString())
     */
+
+    expect( selectedcodec ).to.be.false
 
   } )
 
