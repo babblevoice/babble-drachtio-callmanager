@@ -474,7 +474,7 @@ class srfscenario {
   /*
     simulate a new inbound call
   */
-  inbound( ureq ) {
+  async inbound( ureq ) {
     if( this.callbacks.call ) {
       if( ureq ) {
         this.req = ureq
@@ -483,7 +483,7 @@ class srfscenario {
       }
       this.res = new res()
 
-      let newcall = call.frominvite( this.req, this.res )
+      const newcall = await call.frominvite( this.req, this.res )
       this.callbacks.call( newcall )
         .catch( () => newcall.hangup() )
     }
