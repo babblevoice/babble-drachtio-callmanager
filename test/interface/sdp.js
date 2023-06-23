@@ -1,8 +1,9 @@
 
 
 const expect = require( "chai" ).expect
-const sdp = require( "../../lib/sdp.js" )
-const call = require( "../../lib/call.js" )
+const sdp = require( "../../lib/sdp" )
+const call = require( "../../lib/call" )
+const callmanager = require( "../../index" )
 
 describe( "sdp", function() {
 
@@ -642,5 +643,59 @@ a=rtcp-mux`
 
     expect( bvdesktopinvite200sdpobj.intersection( ourcodecs, true ) ).to.equal( "g722" )
     expect( magrathea200sdpobj.intersection( ourcodecs, true ) ).to.equal( "pcma" )
+  } )
+
+  it( "outbound example - inc ipv6", async () => {
+
+    const sdpstr = `v=0
+o=- 7873703533563891424 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=extmap-allow-mixed
+a=msid-semantic: WMS a46039f4-1857-410e-b1cc-215c09878068
+m=audio 41645 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126
+c=IN IP4 86.169.150.38
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:532873972 1 udp 2122131711 2a00:23c6:e093:a801:6722:f7bb:aeeb:5e04 39087 typ host generation 0 network-id 4 network-cost 10
+a=candidate:226183667 1 udp 1685987071 86.169.150.38 41645 typ srflx raddr 172.17.0.1 rport 41645 generation 0 network-id 2
+a=ice-ufrag:c97P
+a=ice-pwd:sK0NGVPIIx4/qEX+tCVW5dzH
+a=ice-options:trickle
+a=fingerprint:sha-256 0F:37:28:0F:66:1B:7E:D5:36:A4:EB:2D:D4:A8:6E:33:69:31:3B:D4:7B:71:0B:DE:41:09:D1:6C:1E:56:02:1C
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=sendrecv
+a=msid:a46039f4-1857-410e-b1cc-215c09878068 ce8c9c25-2ea0-4079-aaa5-54f771d53310
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtpmap:63 red/48000/2
+a=fmtp:63 111/111
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:222390620 cname:q7Is0hRbTrTbcMJM
+a=ssrc:222390620 msid:a46039f4-1857-410e-b1cc-215c09878068 ce8c9c25-2ea0-4079-aaa5-54f771d53310
+    `
+    callmanager.callmanager( { srf: { use: () => {} } } )
+    const sdpobj = sdp.create( sdpstr )
+    const target = {}
+    await call._parsesdpcandidates( target, sdpobj.sdp )
+    sdpobj.intersection( "g722", true )
+
+    /* our default is to ignore IPv6 addresses (until projectrtp supports it) */
+    expect( target.port ).to.equal( 41645 )
+    expect( target.address ).to.equal( "86.169.150.38" )
+
+    
   } )
 } )
