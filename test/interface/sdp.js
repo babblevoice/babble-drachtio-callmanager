@@ -698,4 +698,79 @@ a=ssrc:222390620 msid:a46039f4-1857-410e-b1cc-215c09878068 ce8c9c25-2ea0-4079-aa
 
     
   } )
+
+  it( "codec has", async () => {
+
+    const sdpwith2833 = `v=0
+o=- 4317 0 IN IP4 127.0.0.1
+s=project
+c=IN IP4 13.42.100.66
+t=0 0
+a=msid-semantic: WMS 136f9ec7464dca67065c81da42013e84
+m=audio 10036 UDP/TLS/RTP/SAVPF 9 101
+a=rtpmap:9 G722/8000
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=setup:passive
+a=msid:136f9ec7464dca67065c81da42013e84 ff8ebd1be43cdf5170974bf0d1efb772
+a=ptime:20
+a=sendrecv
+a=ice-ufrag:50cf0e6109bad2be
+a=ice-pwd:9Tbl7U92hrzTUluayFbRPYh9
+a=fingerprint:sha-256 12:31:FB:95:BB:00:1A:D8:24:94:71:21:CE:05:57:8F:47:1E:5E:C5:43:41:19:3F:2A:B8:8C:92:07:BB:BC:56
+a=candidate:1 1 udp 255 13.42.100.66 10036 typ host generation 0
+a=ssrc:3127369874 cname:97016b88e9a33a3b465b15cff21fec35
+a=ssrc:3127369874 msid:136f9ec7464dca67065c81da42013e84 ff8ebd1be43cdf5170974bf0d1efb772
+a=ssrc:3127369874 mslabel:136f9ec7464dca67065c81da42013e84
+a=ssrc:3127369874 label:ff8ebd1be43cdf5170974bf0d1efb772
+a=rtcp-mux`
+
+    const sdpwithout2833 = `v=0
+o=- 4316 0 IN IP4 127.0.0.1
+s=project
+c=IN IP4 18.170.39.61
+t=0 0
+m=audio 10038 RTP/AVP 9 97 0 8
+a=rtpmap:9 G722/8000
+a=rtpmap:97 ilbc/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=fmtp:97 mode=20
+a=ptime:20
+a=sendrecv`
+
+    const noilbc30 = `v=0
+o=Z 1608292844058 1 IN IP4 192.168.0.141
+s=Z
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 56802 RTP/AVP 8 0 9 106 101 98 97
+a=rtpmap:106 opus/48000/2
+a=fmtp:106 minptime=20; cbr=1; maxaveragebitrate=40000; useinbandfec=1
+a=rtpmap:101 telephone-event/8000
+a=fmtp:101 0-16
+a=rtpmap:98 telephone-event/48000
+a=fmtp:98 0-16
+a=rtpmap:97 iLBC/8000
+a=fmtp:97 mode=30
+a=sendrecv`
+
+    const sdpwith2833obj = sdp.create( sdpwith2833 )
+    const sdpwithout2833obj = sdp.create( sdpwithout2833 )
+    const noilbc30obj = sdp.create( noilbc30 )
+    
+    expect( sdpwith2833obj.has( "2833" ) ).to.be.true
+    expect( sdpwith2833obj.has( "pcmu" ) ).to.be.false
+    expect( sdpwith2833obj.has( "pcma" ) ).to.be.false
+
+
+    expect( sdpwithout2833obj.has( "2833" ) ).to.be.false
+    expect( sdpwithout2833obj.has( "g722" ) ).to.be.true
+    expect( sdpwithout2833obj.has( "ilbc" ) ).to.be.true
+
+    expect( noilbc30obj.has( "ilbc" ) ).to.be.false
+    expect( noilbc30obj.has( "2833" ) ).to.be.true
+    expect( noilbc30obj.has( "g722" ) ).to.be.true
+
+  } )
 } )
