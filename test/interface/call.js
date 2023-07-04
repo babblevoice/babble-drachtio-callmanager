@@ -209,7 +209,7 @@ describe( "call object", function() {
 
     const options = {
       "registrar": {
-        "contacts": async ( entity ) => {
+        "contacts": async ( /* entity */ ) => {
           return {
             "username": "1000",
             "realm": "dummy.com",
