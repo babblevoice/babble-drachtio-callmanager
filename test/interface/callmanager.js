@@ -39,10 +39,12 @@ describe( "callmanager", function() {
       }
     }
     const c = await callmanager.callmanager( options )
+    let ourcall
+    c.once( "call.new", ( c ) => ourcall = c )
 
     expect( usecalled ).to.be.true
 
-    const res = {}
+    const res = { send: () => {} }
     const next = () => {}
     /* present our pretend call */
     await invitecb( req, res, next )
@@ -53,6 +55,8 @@ describe( "callmanager", function() {
       "storebyuuid": 1,
       "storebyentity": 0
     } )
+
+    await ourcall.hangup()
   } )
 
   it( "create new callmanager object test for listening rtp server", async function() {
