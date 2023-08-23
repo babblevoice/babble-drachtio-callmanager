@@ -298,23 +298,28 @@ describe( "call object", function() {
     } )
 
     const child = await inboundcall.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
-    const child2 = await call.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
 
+    const child2 = await call.newuac( { "entity": { "uri": "1000@dummy", "max": 1 } } )
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 2,
       "storebyuuid": 2,
       "storebyentity": 1
     } )
 
-    const child3 = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
+    const child3newcalls = []
+    await call.newuac( { "entity": { "uri": "1000@dummy" } }, { early:( c ) => child3newcalls.push( c ) } )
 
     expect( await callstore.stats() ).to.deep.include( {
-      "storebycallid": 3,
-      "storebyuuid": 3,
+      "storebycallid": 4,
+      "storebyuuid": 4,
       "storebyentity": 1
     } )
 
-    await child3.hangup()
+    await Promise.all( [
+      child3newcalls[ 0 ].hangup(),
+      child3newcalls[ 1 ].hangup()
+    ] )
+
     await inboundcall.hangup()
 
     expect( await callstore.stats() ).to.deep.include( {
@@ -327,7 +332,8 @@ describe( "call object", function() {
     expect( child2 ).to.be.false
 
     expect( child.state.cleaned ).to.be.true
-    expect( child3.state.cleaned ).to.be.true
+    expect( child3newcalls[ 0 ].state.cleaned ).to.be.true
+    expect( child3newcalls[ 1 ].state.cleaned ).to.be.true
 
   } )
 
@@ -524,13 +530,14 @@ describe( "call object", function() {
       eventhappened = true
     } )
 
-    await new Promise( ( resolve ) => {
+    const inbound = await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => { resolve( call ) } )
       srfscenario.inbound()
     } )
 
     expect( eventhappened ).to.be.true
 
+    await inbound.hangup()
   } )
 
   it( "uas.newuac - ringing event", async function() {
@@ -554,6 +561,8 @@ describe( "call object", function() {
     c.ring()
 
     expect( eventhappened ).to.be.true
+
+    await c.hangup()
 
   } )
 
