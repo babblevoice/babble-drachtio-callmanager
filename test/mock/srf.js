@@ -368,7 +368,7 @@ class dialog {
     }
 
     return new Promise( ( resolve ) => {
-      resolve( this )
+      resolve( this.remote.sdp )
     } )
   }
 }
