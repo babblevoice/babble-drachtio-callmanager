@@ -27,6 +27,6 @@ describe( "call.js", function() {
     expect( newcallcalled ).to.be.true
 
     await call.hangup()
-} )
+  } )
 
 } )
