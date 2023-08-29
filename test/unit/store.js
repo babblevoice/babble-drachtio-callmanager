@@ -30,7 +30,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 1,
       "storebyuuid": 1,
       "storebyentity": 1,
-      "storebyentityrealm": 1
+      "storebyrealm": 1
     } )
   } )
 
@@ -53,7 +53,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 1,
       "storebyuuid": 1,
       "storebyentity": 1,
-      "storebyentityrealm": 1
+      "storebyrealm": 1
     } )
 
     dummycall.sip.tags.local = "4444"
@@ -63,7 +63,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 1,
       "storebyuuid": 1,
       "storebyentity": 1,
-      "storebyentityrealm": 1
+      "storebyrealm": 1
     } )
 
     let searchfor = {
@@ -119,7 +119,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 2,
       "storebyuuid": 2,
       "storebyentity": 0,
-      "storebyentityrealm": 0
+      "storebyrealm": 0
     } )
 
     dummycall1._entity = {
@@ -132,7 +132,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 2,
       "storebyuuid": 2,
       "storebyentity": 1,
-      "storebyentityrealm": 1
+      "storebyrealm": 1
     } )
 
     await callstore.set( dummycall3 )
@@ -141,7 +141,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 3,
       "storebyuuid": 3,
       "storebyentity": 1,
-      "storebyentityrealm": 1
+      "storebyrealm": 1
     } )
 
     let c = await callstore.getbycallid( dummycall1.sip )
@@ -158,7 +158,7 @@ describe( "callmanager - store", function() {
       "storebycallid": 0,
       "storebyuuid": 0,
       "storebyentity": 0,
-      "storebyentityrealm": 0
+      "storebyrealm": 0
     } )
   } )
 } )
