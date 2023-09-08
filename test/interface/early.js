@@ -105,6 +105,7 @@ describe( "call early", function() {
       /* Step 3. This is the mocked gateway message back to our newcall. */
       callbacks.cbProvisional( {
         "status": 183,
+        "get": () => { return "INVITE, UPDATE, OPTIONS" },
         "msg": {
           "body": `v=0
 o=- 1608235282228 0 IN IP4 127.0.0.1
@@ -140,7 +141,6 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     const newcall = await call.newuac( { "contact": "callto" } )
     
     await call._onhangup( "wire" )
-    
     expect( newcall.state.early ).to.be.true
     expect( call.state.early ).to.be.true
     expect( mixing ).to.be.true
