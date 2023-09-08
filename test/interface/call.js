@@ -251,13 +251,13 @@ describe( "call object", function() {
     /* mock */
     let requestoptions = false
 
-    child._req.set( "ALLOW", "INVITE, UPDATE, OPTIONS" )
+    child.parseallow( { get:() => { return "INVITE, UPDATE, OPTIONS" } } )
     child._dialog.on( "request", ( options ) => requestoptions = options )
 
     child.update()
 
-    expect( requestoptions.method ).to.equal( "update" )
-    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( "\"\" <sip:0123456789@someotherrealm.com>" )
+    expect( requestoptions.method ).to.equal( "UPDATE" )
+    expect( requestoptions.headers[ "P-Asserted-Identity" ] ).to.equal( "\"\" <sip:0123456789@someotherrealm.com>" )
 
     await call.hangup()
 
@@ -829,11 +829,10 @@ describe( "call object", function() {
       "late": true
     }
 
-    const earlycallbackcalled = false
     const c = await call.newuac( options )
 
     /* mock */
-    c._req.set( "ALLOW", "INVITE, UPDATE, OPTIONS" )
+    c.parseallow( { get:() => { return "INVITE, UPDATE, OPTIONS" } } )
     let requestoptions
     c._dialog.on( "request", ( options ) => requestoptions = options )
 
@@ -845,9 +844,9 @@ describe( "call object", function() {
 
     c.hangup()
 
-    expect( requestoptions.method ).to.equal( "update" )
+    expect( requestoptions.method ).to.equal( "UPDATE" )
     expect( requestoptions.body ).to.be.a( "string" )
-    expect( requestoptions.headers[ "P-Preferred-Identity" ] ).to.equal( "\"Kermit\" <sip:kermy@muppetshow.com>" )
+    expect( requestoptions.headers[ "P-Asserted-Identity" ] ).to.equal( "\"Kermit\" <sip:kermy@muppetshow.com>" )
 
   } )
 
