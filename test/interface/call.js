@@ -70,7 +70,7 @@ describe( "call object", function() {
     expect( call.state ).to.have.property( "destroyed" ).that.is.a( "boolean" ).to.be.true
 
     expect( call ).to.have.property( "children" ) // Set - how do you test?
-    expect( call ).to.have.property( "parent" ).that.is.a( "boolean" ).to.be.false
+    expect( call ).to.have.property( "parent" ).that.is.undefined
 
     expect( call ).to.have.property( "vars" ).that.is.a( "object" )
 
@@ -80,7 +80,7 @@ describe( "call object", function() {
     expect( call.epochs ).to.have.property( "endat" ).that.is.a( "number" )
 
     expect( call ).to.have.property( "channels" ).that.is.a( "object" )
-    expect( call.channels ).to.have.property( "audio" ).to.be.false
+    expect( call.channels ).to.have.property( "audio" ).to.be.undefined
 
     /* if uas */
     expect( call ).to.have.property( "network" ).that.is.a( "object" )
@@ -577,7 +577,7 @@ describe( "call object", function() {
       srfscenario.inbound()
     } )
 
-    c.on( "call.destroyed", ( c ) => {
+    c.on( "call.destroyed", ( /*c*/ ) => {
       eventhappened = true
     } )
 
@@ -597,7 +597,7 @@ describe( "call object", function() {
       eventhappened = true
     } )
 
-    srfscenario.options.em.on( "call.destroyed", ( c ) => {
+    srfscenario.options.em.on( "call.destroyed", ( /*c*/ ) => {
       eventhappened = false
     } )
 
@@ -650,7 +650,7 @@ describe( "call object", function() {
     c._req.msg.uri = "sip:bob@biloxi.com"
     c._req.setparsedheader( "from", { "params": { "tag": "767sf76wew" }, "uri": "sip:bob@biloxi.com", "host": "biloxi.com" } )
 
-    c._res.onsend( ( code, msg ) => {
+    c._res.onsend( ( code, /*msg*/ ) => {
 
       if( 407 == code ) {
 
@@ -773,7 +773,7 @@ describe( "call object", function() {
     const srfscenario = new srf.srfscenario( {} )
 
     let createuacoptions
-    srfscenario.oncreateUAC( ( contact, options, callbacks ) => {
+    srfscenario.oncreateUAC( ( contact, options, /*callbacks*/ ) => {
       createuacoptions = options
 
     } )
@@ -798,7 +798,7 @@ describe( "call object", function() {
     }
 
     let earlycallbackcalled = false
-    const c = await call.newuac( options, { "early": ( c ) => earlycallbackcalled = true } )
+    const c = await call.newuac( options, { "early": ( /*c*/ ) => earlycallbackcalled = true } )
 
     c.hangup()
 
@@ -814,7 +814,7 @@ describe( "call object", function() {
     }
 
     let earlycallbackcalled = false
-    const c = await call.newuac( options, { "confirm": ( c ) => earlycallbackcalled = true } )
+    const c = await call.newuac( options, { "confirm": ( /*c*/ ) => earlycallbackcalled = true } )
 
     c.hangup()
 
