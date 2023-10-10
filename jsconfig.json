@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "commonJS",
+    "target": "es6",
+    "moduleResolution": "node",
+    "checkJs": true
+  },
+  "include": [ "index.js", "babble/*.js", "babble/apps/*.js" ],
+  "exclude": [ "node_modules" ]
+}
