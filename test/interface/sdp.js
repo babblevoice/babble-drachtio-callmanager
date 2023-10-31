@@ -773,4 +773,35 @@ a=sendrecv`
     expect( noilbc30obj.has( "g722" ) ).to.be.true
 
   } )
+  
+  it( "Poly E350 dynamic pt", async () => {
+    const ilbcpt = `v=0
+o=- 1698686475 1698686475 IN IP4 82.19.206.102
+s=Polycom IP Phone
+c=IN IP4 82.19.206.102
+t=0 0
+a=sendrecv
+m=audio 63000 RTP/AVP 110 115 99 9 102 0 8 18 127
+a=rtpmap:110 iLBC/8000
+a=fmtp:110 mode=20
+a=rtpmap:115 G7221/32000
+a=fmtp:115 bitrate=48000
+a=rtpmap:99 SIREN14/16000
+a=fmtp:99 bitrate=48000
+a=rtpmap:9 G722/8000
+a=rtpmap:102 G7221/16000
+a=fmtp:102 bitrate=32000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:18 G729/8000
+a=fmtp:18 annexb=no
+a=rtpmap:127 telephone-event/8000`
+
+    const sdpilbc = sdp.create( ilbcpt )
+
+    expect( sdpilbc.has( "ilbc" ) ).to.be.true
+    expect( sdpilbc.has( "pcma" ) ).to.be.true
+    expect( sdpilbc.has( "pcmu" ) ).to.be.true
+    expect( sdpilbc.has( "g722" ) ).to.be.true
+  } )
 } )
