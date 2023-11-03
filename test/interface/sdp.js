@@ -2,8 +2,6 @@
 
 const expect = require( "chai" ).expect
 const sdp = require( "../../lib/sdp" )
-const call = require( "../../lib/call" )
-const callmanager = require( "../../index" )
 
 describe( "sdp", function() {
 
@@ -325,11 +323,9 @@ a=rtpmap:8 PCMA/8000`
     const oursdp = sdp.create( testsdp )
     const remoteaudio = oursdp.getaudio()
 
-    const def = call._createchannelremotedef( remoteaudio.address, remoteaudio.port, remoteaudio.audio.payloads[ 0 ] )
-
-    expect( def.remote.address ).to.equal( "213.166.4.136" )
-    expect( def.remote.port ).to.equal( 48380 )
-    expect( def.remote.codec ).to.equal( 8 )
+    expect( remoteaudio.address ).to.equal( "213.166.4.136" )
+    expect( remoteaudio.port ).to.equal( 48380 )
+    expect( remoteaudio.audio.payloads[ 0 ] ).to.equal( 8 )
   } )
 
   it( "another real life example", async function() {
@@ -686,11 +682,11 @@ a=rtpmap:126 telephone-event/8000
 a=ssrc:222390620 cname:q7Is0hRbTrTbcMJM
 a=ssrc:222390620 msid:a46039f4-1857-410e-b1cc-215c09878068 ce8c9c25-2ea0-4079-aaa5-54f771d53310
     `
-    callmanager.callmanager( { srf: { use: () => {} } } )
+
     const sdpobj = sdp.create( sdpstr )
-    const target = {}
-    await call._parsesdpcandidates( target, sdpobj.sdp )
-    sdpobj.intersection( "g722", true )
+    const target = sdpobj.getaudio()
+
+    expect( sdpobj.intersection( "g722", true ) ).to.equal( "g722" )
 
     /* our default is to ignore IPv6 addresses (until projectrtp supports it) */
     expect( target.port ).to.equal( 41645 )
@@ -799,9 +795,45 @@ a=rtpmap:127 telephone-event/8000`
 
     const sdpilbc = sdp.create( ilbcpt )
 
+    const expectdps = {
+      ilbc: { payload: 110, codec: "iLBC", rate: 8000 },
+      rfc2833: { payload: 127, codec: "telephone-event", rate: 8000 }
+    }
+
+    expect( sdpilbc.getdynamicpayloadtypes() ).to.deep.equal( expectdps )
+
     expect( sdpilbc.has( "ilbc" ) ).to.be.true
     expect( sdpilbc.has( "pcma" ) ).to.be.true
     expect( sdpilbc.has( "pcmu" ) ).to.be.true
     expect( sdpilbc.has( "g722" ) ).to.be.true
+
+    const othersdp = sdp.create().addcodecs( "ilbc 2833" ).setdynamepayloadtypes( sdpilbc )
+
+    expect( othersdp.toString() ).to.match( new RegExp( `v=0
+o=- \\d+ 0 IN IP4 127.0.0.1
+s=project
+c=IN IP4 127.0.0.1
+t=0 0
+m=audio 0 RTP/AVP 97 101
+a=rtpmap:110 ilbc/8000
+a=rtpmap:127 telephone-event/8000
+a=fmtp:110 mode=20
+a=fmtp:127 0-16
+a=ptime:20
+a=sendrecv
+`.replace( /\r\n/g, "\n" ).replace( /\n/g, "\r\n" ) ) )
+
+    sdpilbc.select( "pcma" )
+
+    const audio = sdpilbc.getaudio()
+
+    expect( audio.port ).to.equal( 63000 )
+    expect( audio.address ).to.equal( "82.19.206.102" )
+    expect( audio.audio.payloads[ 0 ] ).to.equal( 8 )
+
+    expect( sdpilbc.selected ).to.deep.equal( { name: "pcma", pt: 8, dpt: 8 } )
+    sdpilbc.select( "ilbc" )
+    expect( sdpilbc.selected ).to.deep.equal( { name: "ilbc", pt: 97, dpt: 110 } )
+
   } )
 } )
