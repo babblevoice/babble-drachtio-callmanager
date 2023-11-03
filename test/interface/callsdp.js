@@ -18,16 +18,16 @@ describe( "call sdp generation", function() {
     let callnumber = 0
     const callcount = 6
     const codecsselected = []
-    const c = await new Promise( ( done ) => {
+    await new Promise( ( resolve ) => {
       srfscenario.oncall( async ( call ) => {
         await call.answer()
 
-        codecsselected.push( call.selectedcodec )
+        codecsselected.push( call.sdp.remote.selected.name )
         callnumber++
 
         call.hangup()
 
-        if( callcount == callnumber ) done()
+        if( callcount == callnumber ) resolve()
       } )
 
       for( let i = 0; i < callcount; i++ ) {
