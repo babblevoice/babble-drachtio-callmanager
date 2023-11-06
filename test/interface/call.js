@@ -858,7 +858,6 @@ describe( "call object", function() {
       "late": true
     }
 
-    const earlycallbackcalled = false
     const c = await call.newuac( options )
 
     /* mock */
@@ -1015,7 +1014,7 @@ describe( "call object", function() {
     const c = await call.newuac( options )
 
     let eventfired = false
-    c.on( "call.pick", ( callobject ) => {
+    c.on( "call.pick", ( /*callobject*/ ) => {
       eventfired = true
     } )
 
