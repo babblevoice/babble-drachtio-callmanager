@@ -1,6 +1,6 @@
 {
   "name": "@babblevoice/babble-drachtio-callmanager",
-  "version": "2.3.22",
+  "version": "2.3.23",
   "description": "Call processing to create a PBX",
   "main": "index.js",
   "scripts": {
