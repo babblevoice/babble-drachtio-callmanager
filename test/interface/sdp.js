@@ -836,4 +836,66 @@ a=sendrecv
     expect( sdpilbc.selected ).to.deep.equal( { name: "ilbc", pt: 97, dpt: 110 } )
 
   } )
+
+  it( "Poly E220 hold", async () => {
+
+    const polysdp = `v=0
+o=- 1699364340 1699364341 IN IP4 82.19.206.102
+s=Polycom IP Phone
+c=IN IP4 82.19.206.102
+t=0 0
+a=sendonly
+m=audio 63558 RTP/AVP 9 127
+a=rtpmap:9 G722/8000
+a=rtpmap:127 telephone-event/8000
+a=sendonly
+`.replace( /\r\n/g, "\n" ).replace( /\n/g, "\r\n" )
+
+    const sdpobj = sdp.create( polysdp )
+
+    /* ref call.#getsdpformodify */
+    const media = sdpobj.getmedia()
+
+    let ip
+    if( sdpobj && sdpobj.sdp && sdpobj.sdp.connection && sdpobj.sdp.connection.ip ) {
+      ip = sdpobj.sdp.connection.ip
+    }
+
+    expect( ip ).to.equal( "82.19.206.102" )
+    expect( media.direction ).to.equal( "sendonly" )
+    
+  } )
+
+  it( "Poly E220 unhold", async () => {
+
+    const polysdp = `v=0
+o=- 1699364340 1699364342 IN IP4 82.19.206.102
+s=Polycom IP Phone
+c=IN IP4 82.19.206.102
+t=0 0
+a=sendrecv
+m=audio 63558 RTP/AVP 110 9 0 8 127
+a=rtpmap:110 iLBC/8000
+a=fmtp:110 mode=20
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:127 telephone-event/8000
+`.replace( /\r\n/g, "\n" ).replace( /\n/g, "\r\n" )
+
+    const sdpobj = sdp.create( polysdp )
+
+    /* ref call.#getsdpformodify */
+    const media = sdpobj.getmedia()
+
+    let ip
+    if( sdpobj && sdpobj.sdp && sdpobj.sdp.connection && sdpobj.sdp.connection.ip ) {
+      ip = sdpobj.sdp.connection.ip
+    }
+
+    expect( ip ).to.equal( "82.19.206.102" )
+    /* somewhere in the library - default is sendrecv so it is left undefined */
+    expect( media.direction ).to.be.undefined
+  } )
+
 } )
