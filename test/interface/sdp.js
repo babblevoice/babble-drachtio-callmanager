@@ -898,4 +898,33 @@ a=rtpmap:127 telephone-event/8000
     expect( media.direction ).to.be.undefined
   } )
 
+  it( "receive sdp send sdp ilbc", async () => {
+    const polysdp = `v=0
+o=- 1699618792 1699618792 IN IP4 82.19.206.102
+s=Polycom IP Phone
+c=IN IP4 82.19.206.102
+t=0 0
+a=sendrecv
+m=audio 63450 RTP/AVP 110 127
+a=rtpmap:110 iLBC/8000
+a=fmtp:110 mode=20
+a=rtpmap:127 telephone-event/8000
+`.replace( /\r\n/g, "\n" ).replace( /\n/g, "\r\n" )
+
+    const sdpobj = sdp.create( polysdp )
+
+    sdpobj.select( sdpobj.intersection( "g722 pcma pcmu ilbc", true ) )
+
+    const respsdp = sdp.create()
+      .addcodecs( sdpobj.selected.name )
+      .setconnectionaddress( "1.1.1.1" )
+      .setaudioport( 10000 )
+      .setdynamepayloadtypes( sdpobj )
+
+    const outsdpstring = respsdp.toString()
+
+    expect( outsdpstring ).include( outsdpstring, "m=audio 10000 RTP/AVP 110" )
+    expect( outsdpstring ).include( outsdpstring, "a=rtpmap:110 ilbc/8000" )
+
+  } )
 } )
