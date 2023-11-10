@@ -37,7 +37,8 @@ const r = new Registrar( {
   "staletime": 180, /* number of seconds we consider a client stale if we don't hear a response from an OPTIONS or REGISTER ping */
   "expires": 3600, /* default expires */
   "minexpires": 3600, /* Force the client with 423 to extend expires to this amount - conflicts with regping */
-  "userlookup": passwordLookup
+  "userlookup": passwordLookup,
+  "forcerport": true /* when sending invite - request rport */
 } )
 
 
