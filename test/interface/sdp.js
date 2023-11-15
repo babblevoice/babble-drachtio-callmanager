@@ -814,7 +814,7 @@ o=- \\d+ 0 IN IP4 127.0.0.1
 s=project
 c=IN IP4 127.0.0.1
 t=0 0
-m=audio 0 RTP/AVP 97 101
+m=audio 0 RTP/AVP 110 127
 a=rtpmap:110 ilbc/8000
 a=rtpmap:127 telephone-event/8000
 a=fmtp:110 mode=20
