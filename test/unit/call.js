@@ -22,8 +22,8 @@ describe( "call.js", function() {
 
     // TODO we set the remote id using "setremoteid", but getter returns it as "user" 
     // the names mismatch and can be confusing, we might consider some polishing here?
-    expect(call.remote.name).equals("foo")
-    expect(call.remote.user).equals("123456789")
+    expect(call.callerid.name).equals("foo")
+    expect(call.callerid.user).equals("123456789")
     expect( newcallcalled ).to.be.true
 
     await call.hangup()
