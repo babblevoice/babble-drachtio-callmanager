@@ -7,7 +7,7 @@ const events = require( "events" )
 const call = require( "../../lib/call.js" )
 const callmanager = require( "../../index.js" )
 
-let possiblesdp = [
+const possiblesdp = [
   `v=0
 o=Z 1610744131900 1 IN IP4 127.0.0.1
 s=Z
@@ -23,7 +23,7 @@ a=fmtp:101 0-16
 a=rtpmap:18 G729/8000
 a=fmtp:18 annexb=no
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
-`v=0
+  `v=0
 o=- 1608235282228 0 IN IP4 127.0.0.1
 s=
 c=IN IP4 192.168.0.141
@@ -32,7 +32,7 @@ m=audio 20000 RTP/AVP 8 101
 a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-16
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
-`v=0
+  `v=0
 o=- 1608235282228 0 IN IP4 127.0.0.1
 s=
 c=IN IP4 192.168.0.141
@@ -41,7 +41,7 @@ m=audio 20000 RTP/AVP 0 101
 a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-16
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
-`v=0
+  `v=0
 o=- 1608235282228 0 IN IP4 127.0.0.1
 s=
 c=IN IP4 192.168.0.141
@@ -52,7 +52,7 @@ a=rtpmap:101 telephone-event/8000
 a=fmtp:101 0-16
 a=fmtp:97 mode=20
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
-`v=0
+  `v=0
 o=Z 1610744131900 1 IN IP4 127.0.0.1
 s=Z
 c=IN IP4 192.168.0.200
@@ -67,7 +67,7 @@ a=fmtp:101 0-16
 a=rtpmap:18 G729/8000
 a=fmtp:18 annexb=no
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
-`v=0
+  `v=0
 o=Z 1610744131900 1 IN IP4 127.0.0.1
 s=Z
 c=IN IP4 192.168.0.200
@@ -86,7 +86,7 @@ a=fmtp:97 mode=20
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 ]
 
-let possiblesavpsdp = [
+const possiblesavpsdp = [
   `v=0
 o=- 6278233949897424941 2 IN IP4 127.0.0.1
 s=-
@@ -130,7 +130,7 @@ a=rtpmap:113 telephone-event/16000
 a=rtpmap:126 telephone-event/8000
 a=ssrc:3789235955 cname:k129XMgcWznC/heR
 a=ssrc:3789235955 msid:Aq3uReW2RJFKkrlg942QblHcszboGZx9dhvK eaa81692-2187-4303-8e59-ed1bcb9591ee`.replace(/(\r\n|\n|\r)/gm, "\r\n"),
-`v=0
+  `v=0
 o=- 6278233949897424941 2 IN IP4 127.0.0.1
 s=-
 t=0 0
@@ -218,8 +218,8 @@ class req {
 
     /* copied object structure from srf */
     this.setparsedheader( "from", {
-    "uri": "sip:1000@dummy.com;transport=UDP",
-    "params": {
+      "uri": "sip:1000@dummy.com;transport=UDP",
+      "params": {
         "tag": crypto.randomBytes( 5 ).toString( "hex" )
       }
     } )
@@ -306,7 +306,7 @@ class dialog {
 
     let fromtag = ""
     if( req ) {
-      let from = req.getParsedHeader( "from" )
+      const from = req.getParsedHeader( "from" )
       fromtag = from.params.tag
     }
 
@@ -392,7 +392,7 @@ class srf {
 
   async createUAC( contact, options, callbacks ) {
     this._createuaccount++
-    let _req = new req()
+    const _req = new req()
 
     /* create a default */
     callbacks.cbRequest( {}, _req )
@@ -401,7 +401,7 @@ class srf {
       return this.callbacks.createuac( contact, options, callbacks )
     }
 
-    if( this.newuactimeout > 0 ) {
+    if( 0 < this.newuactimeout ) {
       await new Promise( ( resolve ) => { setTimeout( () => resolve(), this.newuactimeout ) } )
     }
 
@@ -432,7 +432,7 @@ class srfscenario {
       "call": false
     }
 
-    let defaultoptions = {
+    const defaultoptions = {
       "method": "invite",
       "uacsdp": possiblesdp[ 0 ],
       "uassdp": possiblesdp[ 1 ]
