@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "commonJS",
+    "module": "node16",
     "target": "es6",
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "checkJs": true
   },
   "include": [ "index.js", "babble/*.js", "babble/apps/*.js" ],
