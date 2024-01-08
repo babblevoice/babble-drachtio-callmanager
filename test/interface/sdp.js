@@ -3,6 +3,8 @@
 const expect = require( "chai" ).expect
 const sdp = require( "../../lib/sdp" )
 
+const dns = require( "node:dns" )
+
 describe( "sdp", function() {
 
   it( "create new sdp object", async function() {
@@ -926,5 +928,78 @@ a=rtpmap:127 telephone-event/8000
     expect( outsdpstring ).include( outsdpstring, "m=audio 10000 RTP/AVP 110" )
     expect( outsdpstring ).include( outsdpstring, "a=rtpmap:110 ilbc/8000" )
 
+  } )
+
+  it( "SDP IP V6 candidate", async () => {
+    const wsssdp = `v=0
+o=- 4684977919666729506 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=extmap-allow-mixed
+a=msid-semantic: WMS 2e008e23-265a-42a0-ba6f-d147a9d0ca42
+m=audio 28022 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126
+c=IN IP4 209.35.84.57
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:1446275835 1 udp 2122129151 192.168.1.108 52396 typ host generation 0 network-id 1
+a=candidate:1833640547 1 udp 2122063615 172.25.160.1 52397 typ host generation 0 network-id 4
+a=candidate:3642338680 1 udp 2122262783 2a01:4b00:ea24:b300:10a8:8a7e:234c:3161 52398 typ host generation 0 network-id 2
+a=candidate:4227024272 1 udp 2122197247 2a01:4b00:ea24:b300:f50b:e799:7a1:8cc3 52399 typ host generation 0 network-id 3
+a=candidate:2218323828 1 udp 1685921535 209.35.84.57 28022 typ srflx raddr 192.168.1.108 rport 52396 generation 0 network-id 1
+a=ice-ufrag:5emx
+a=ice-pwd:T78uDKroul30L+4WytFCzZiv
+a=ice-options:trickle
+a=fingerprint:sha-256 AE:24:0F:8F:23:5C:EE:D5:F8:BD:EB:2C:86:15:13:44:A2:D1:30:9E:74:68:87:8C:50:80:F7:9A:6A:D9:3A:56
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=sendrecv
+a=msid:2e008e23-265a-42a0-ba6f-d147a9d0ca42 ff52617f-a48b-454e-9d50-47367329f318
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtpmap:63 red/48000/2
+a=fmtp:63 111/111
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:2953770750 cname:/DZABa/Op+oV703F
+a=ssrc:2953770750 msid:2e008e23-265a-42a0-ba6f-d147a9d0ca42 ff52617f-a48b-454e-9d50-47367329f318
+`.replace( /\r\n/g, "\n" ).replace( /\n/g, "\r\n" )
+
+    const sdpobj = sdp.create( wsssdp )
+    const target = sdpobj.getaudio()
+    const ignoreipv6candidates = true
+    const ipv6regex = /^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$/
+
+    let candidates = sdpobj.sdp.media[ 0 ].candidates
+    if( 0 < candidates.length ) {
+      if( ignoreipv6candidates ) {
+        candidates = candidates.filter( ( c ) => { 
+          const ismatch = ipv6regex.test( c.ip )
+          return !ismatch
+        } )
+      }
+
+      candidates.sort( ( l, r ) => { return r.priority - l.priority } )
+      target.port = candidates[ 0 ].port
+
+      await new Promise( ( resolve ) => {
+        dns.lookup( candidates[ 0 ].ip, ( err, result ) => {
+          if( !err ) target.address = result
+          resolve()
+        } )
+      } )
+
+      expect( target.address ).to.equal( "192.168.1.108" )
+      expect( target.port ).to.equal( 52396 )
+    }
   } )
 } )

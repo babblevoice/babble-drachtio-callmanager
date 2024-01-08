@@ -237,6 +237,7 @@ describe( "call object", function() {
       "type": "callerid"
     } )
 
+    /* when newuacv returns, only one of the contacts should hacve succeeded */
     const child = await call.newuac( { "entity": { "uri": "1000@dummy" } } )
 
     expect( await callstore.stats() ).to.deep.include( {
@@ -257,7 +258,7 @@ describe( "call object", function() {
     child.update()
 
     expect( requestoptions.method ).to.equal( "UPDATE" )
-    expect( requestoptions.headers[ "P-Asserted-Identity" ] ).to.equal( "\"\" <sip:0123456789@someotherrealm.com>" )
+    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"\" <sip:0123456789@someotherrealm.com>;party=calling;screen=yes" )
 
     await call.hangup()
 
@@ -404,8 +405,8 @@ describe( "call object", function() {
     expect( children[ 0 ].hangup_cause.reason ).equal( "USER_BUSY" )
 
     expect( await callstore.stats() ).to.deep.include( {
-      "storebycallid": 1,
-      "storebyuuid": 1,
+      "storebycallid": 2,
+      "storebyuuid": 2,
       "storebyentity": 0
     } )
 
@@ -445,6 +446,9 @@ describe( "call object", function() {
     expect( children[ 0 ].hangup_cause.sip ).equal( 408 )
     expect( children[ 0 ].hangup_cause.reason ).equal( "REQUEST_TIMEOUT" )
     expect( children[ 0 ].hangup_cause.src ).equal( "us" )
+
+    /* when we get here the clean up is on teh event loop */
+    await new Promise( resolve => setTimeout( resolve, 100 ) )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 1,
@@ -785,7 +789,7 @@ describe( "call object", function() {
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "Remote-Party-ID" ] ).to.equal( "\"\" <sip:0000000000@localhost.localdomain>" )
+    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "\"\" <sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
     expect( createuacoptions.late ).to.be.true
   } )
 
@@ -836,17 +840,16 @@ describe( "call object", function() {
     let requestoptions
     c._dialog.on( "request", ( options ) => requestoptions = options )
 
-    await c.update( { "remote": {
-      "display": "Kermit",
-      "realm": "muppetshow.com",
-      "username": "kermy"
+    await c.update( { "callerid": {
+      "name": "Kermit",
+      "number": "kermy"
     } } )
 
     c.hangup()
 
     expect( requestoptions.method ).to.equal( "UPDATE" )
     expect( requestoptions.body ).to.be.a( "string" )
-    expect( requestoptions.headers[ "P-Asserted-Identity" ] ).to.equal( "\"Kermit\" <sip:kermy@muppetshow.com>" )
+    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"Kermit\" <sip:kermy@localhost.localdomain>;party=calling;screen=yes" )
 
   } )
 
@@ -1148,7 +1151,7 @@ describe( "call object", function() {
     const c = await call.newuac( options )
 
     /* no default configured */
-    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( "\"Hello\" <sip:0000000000@localhost.localdomain>" )
+    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"Hello\" <sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
 
     c._onhangup( "wire" )
 
@@ -1169,7 +1172,7 @@ describe( "call object", function() {
 
 
     /* no default configured */
-    expect( c.options.headers[ "Remote-Party-ID" ] ).to.equal( "\"\" <sip:012345789@localhost.localdomain>" )
+    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"\" <sip:012345789@localhost.localdomain>;party=calling;screen=yes" )
 
     c._onhangup( "wire" )
 
