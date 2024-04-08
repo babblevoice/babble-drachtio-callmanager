@@ -7,7 +7,7 @@ const projectrtp = require( "@babblevoice/projectrtp" ).projectrtp
 const default_options = {
   "preferedcodecs": "g722 ilbc pcmu pcma",
   //"transcode": true, - this never made it into the software - TODO
-  "uactimeout": 30000, /* timeout when calling a client */
+  "uactimeout": 60000, /* timeout when calling a client */
   "seexpire": 120000, /* session expires timeout mS */
   "rfc2833": true,  /* Enable RFC 2833 - DTMF */
   "late": false,  /* Late negotiation */
