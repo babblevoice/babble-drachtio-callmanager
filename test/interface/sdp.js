@@ -3,6 +3,7 @@
 const expect = require( "chai" ).expect
 const sdp = require( "../../lib/sdp" )
 
+const net = require( "net" )
 const dns = require( "node:dns" )
 
 describe( "sdp", function() {
@@ -977,13 +978,12 @@ a=ssrc:2953770750 msid:2e008e23-265a-42a0-ba6f-d147a9d0ca42 ff52617f-a48b-454e-9
     const sdpobj = sdp.create( wsssdp )
     const target = sdpobj.getaudio()
     const ignoreipv6candidates = true
-    const ipv6regex = /^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$/
 
     let candidates = sdpobj.sdp.media[ 0 ].candidates
     if( 0 < candidates.length ) {
       if( ignoreipv6candidates ) {
         candidates = candidates.filter( ( c ) => { 
-          const ismatch = ipv6regex.test( c.ip )
+          const ismatch = net.isIPv6( c.ip )
           return !ismatch
         } )
       }
@@ -1000,6 +1000,80 @@ a=ssrc:2953770750 msid:2e008e23-265a-42a0-ba6f-d147a9d0ca42 ff52617f-a48b-454e-9
 
       expect( target.address ).to.equal( "192.168.1.108" )
       expect( target.port ).to.equal( 52396 )
+    }
+  } )
+
+  it( "SDP IP V6 and local hashed candidates", async () => {
+    const wsssdp = `v=0
+o=- 5035661740065349798 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=extmap-allow-mixed
+a=msid-semantic: WMS 283cd9e0-ac17-4a6b-b5bc-60fceb19b94f
+m=audio 61955 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126
+c=IN IP4 90.202.48.79
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:3845972840 1 udp 2121998079 192.168.0.19 61955 typ host generation 0 network-id 1
+a=candidate:1805236522 1 udp 2122265343 fd8e:59dd:8c2d::e25d:b2e0:9a36:9e91 61956 typ host generation 0 network-id 4
+a=candidate:32897429 1 udp 2122199807 fd8e:59dd:8c2d::1856:4c0d:8f7a:e8a4 61957 typ host generation 0 network-id 5
+a=candidate:144781267 1 udp 2122131711 2a02:c7c:3950:800:1856:4c0d:8f7a:e8a4 61958 typ host generation 0 network-id 2
+a=candidate:3569255005 1 udp 2122066175 2a02:c7c:3950:800:2e9:656d:c9ee:8cbc 61959 typ host generation 0 network-id 3
+a=candidate:1044366121 1 udp 1685790463 90.202.48.79 61955 typ srflx raddr 192.168.0.19 rport 61955 generation 0 network-id 1
+a=ice-ufrag:x8jh
+a=ice-pwd:dbn/yuXRtq7VsjQ+mzXtAy/A
+a=ice-options:trickle
+a=fingerprint:sha-256 F9:F0:29:1F:23:D4:8E:8A:25:78:E7:97:D2:EE:56:BC:B6:26:C9:9E:30:B0:14:A5:B4:32:97:31:88:16:6D:FF
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=sendrecv
+a=msid:283cd9e0-ac17-4a6b-b5bc-60fceb19b94f a3f88fda-444b-4d7b-b55a-982f5bb7180e
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtpmap:63 red/48000/2
+a=fmtp:63 111/111
+a=rtpmap:9 G722/8000
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:13 CN/8000
+a=rtpmap:110 telephone-event/48000
+a=rtpmap:126 telephone-event/8000
+a=ssrc:874678690 cname:9XGi4p1yKdReFiKK
+a=ssrc:874678690 msid:283cd9e0-ac17-4a6b-b5bc-60fceb19b94f a3f88fda-444b-4d7b-b55a-982f5bb7180e
+`.replace( /\r\n/g, "\n" ).replace( /\n/g, "\r\n" )
+
+    const sdpobj = sdp.create( wsssdp )
+    const target = sdpobj.getaudio()
+    const ignoreipv6candidates = true
+
+    let candidates = sdpobj.sdp.media[ 0 ].candidates
+    if( 0 < candidates.length ) {
+      if( ignoreipv6candidates ) {
+        candidates = candidates.filter( ( c ) => { 
+          const ismatch = net.isIPv6( c.ip )
+          return !ismatch
+        } )
+      }
+
+      candidates.sort( ( l, r ) => { return r.priority - l.priority } )
+      target.port = candidates[ 0 ].port
+
+      await new Promise( ( resolve ) => {
+        dns.lookup( candidates[ 0 ].ip, ( err, result ) => {
+          if( !err ) target.address = result
+          resolve()
+        } )
+      } )
+
+      /* Ideally we use the 190 address but the candidates reported this one as higher priority */
+      expect( target.address ).to.equal( "192.168.0.19" )
+      expect( target.port ).to.equal( 61955 )
     }
   } )
 } )
