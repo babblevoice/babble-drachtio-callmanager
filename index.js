@@ -14,7 +14,10 @@ const default_options = {
   "registrar": false, /* our registrar object or falsey */
   "referauthrequired": true,
   "ignoreipv6candidates": true, /* ipv6 does not work in projectrtp */
-  "privacy": false
+  "privacy": false,
+  "hangupchildrenonhangup": true,
+  "hangupparentonhangup": false,
+  "continueonotherhangup": false
 }
 
 /**
