@@ -258,9 +258,10 @@ describe( "call object", function() {
     child.update()
 
     expect( requestoptions.method ).to.equal( "UPDATE" )
-    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"\" <sip:0123456789@someotherrealm.com>;party=calling;screen=yes" )
+    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "<sip:0123456789@someotherrealm.com>;party=calling;screen=yes" )
 
-    await call.hangup()
+    /* simulate wire to propogate hangup */
+    await call.hangup( call.hangupcodes.NORMAL_CLEARING, false, "wire" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
@@ -321,7 +322,7 @@ describe( "call object", function() {
       child3newcalls[ 1 ].hangup()
     ] )
 
-    await inboundcall.hangup()
+    await inboundcall.hangup( call.hangupcodes.NORMAL_CLEARING, false, "wire" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
@@ -405,8 +406,8 @@ describe( "call object", function() {
     expect( children[ 0 ].hangup_cause.reason ).equal( "USER_BUSY" )
 
     expect( await callstore.stats() ).to.deep.include( {
-      "storebycallid": 2,
-      "storebyuuid": 2,
+      "storebycallid": 1,
+      "storebyuuid": 1,
       "storebyentity": 0
     } )
 
@@ -789,7 +790,7 @@ describe( "call object", function() {
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "\"\" <sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
+    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "<sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
     expect( createuacoptions.late ).to.be.true
   } )
 
@@ -1172,7 +1173,7 @@ describe( "call object", function() {
 
 
     /* no default configured */
-    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"\" <sip:012345789@localhost.localdomain>;party=calling;screen=yes" )
+    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "<sip:012345789@localhost.localdomain>;party=calling;screen=yes" )
 
     c._onhangup( "wire" )
 
