@@ -1,6 +1,5 @@
 
 const expect = require( "chai" ).expect
-const call = require( "../../lib/call.js" )
 const srf = require( "../mock/srf.js" )
 
 /* These DO NOT form part of our interface */
@@ -117,8 +116,8 @@ describe( "uas.newuac - late", function() {
     } )
 
 
-    /* Hangup parent - child should follow */
-    await call.hangup()
+    /* Hangup parent - child should follow (if the wire is the source) */
+    await call.hangup( call.hangupcodes.NORMAL_CLEARING, false, "wire" )
 
     expect( await callstore.stats() ).to.deep.include( {
       "storebycallid": 0,
