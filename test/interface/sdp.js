@@ -167,6 +167,7 @@ a=fmtp:18 annexb=no
 a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     const remote = sdp.create( testsdp )
+    /* intersection with first only will call select */
     expect( remote.intersection( "g722 pcmu", true ) ).to.equal( "g722" )
 
     remote.setaudiodirection( "inactive" )
@@ -176,15 +177,9 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
       "s=Z\r\n" +
       "c=IN IP4 127.0.0.1\r\n" +
       "t=0 0\r\n" +
-      "m=audio 56858 RTP/AVP 106 9 98 101 0 8 18 3\r\n" +
-      "a=rtpmap:106 opus/48000/2\r\n" +
-      "a=rtpmap:98 telephone-event/48000\r\n" +
+      "m=audio 56858 RTP/AVP 9 101\r\n" +
       "a=rtpmap:101 telephone-event/8000\r\n" +
-      "a=rtpmap:18 G729/8000\r\n" +
-      "a=fmtp:106 maxplaybackrate=16000; sprop-maxcapturerate=16000; minptime=20; cbr=1; maxaveragebitrate=20000; useinbandfec=1\r\n" +
-      "a=fmtp:98 0-16\r\n" +
       "a=fmtp:101 0-16\r\n" +
-      "a=fmtp:18 annexb=no\r\n" +
       "a=inactive\r\n"
     )
   } )
@@ -1075,5 +1070,69 @@ a=ssrc:874678690 msid:283cd9e0-ac17-4a6b-b5bc-60fceb19b94f a3f88fda-444b-4d7b-b5
       expect( target.address ).to.equal( "192.168.0.19" )
       expect( target.port ).to.equal( 61955 )
     }
+  } )
+
+  it( "select codecs and regenerate sdp 1", async () => {
+    const testsdp = `v=0
+o=Z 1608236465345 1 IN IP4 192.168.0.141
+s=Z
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 56802 RTP/AVP 8 0 9 97 106 98
+a=rtpmap:97 iLBC/8000
+a=fmtp:97 mode=20
+a=rtpmap:106 opus/48000/2
+a=fmtp:106 minptime=20; cbr=1; maxaveragebitrate=40000; useinbandfec=1
+a=rtpmap:98 telephone-event/48000
+a=fmtp:98 0-16
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+
+    const sdpobj = sdp.create( testsdp )
+    sdpobj.select( "ilbc" )
+    const oursdpstr = sdpobj.toString()
+
+    expect( oursdpstr ).to.include( "RTP/AVP 97 101\r\n" )
+  } )
+
+  it( "select codecs and regenerate sdp 2", async () => {
+    const testsdp = `v=0
+o=Z 1608236465345 1 IN IP4 192.168.0.141
+s=Z
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 56802 RTP/AVP 8 0 9 97 106 101
+a=rtpmap:97 iLBC/8000
+a=fmtp:97 mode=20
+a=rtpmap:106 opus/48000/2
+a=fmtp:106 minptime=20; cbr=1; maxaveragebitrate=40000; useinbandfec=1
+a=rtpmap:101 telephone-event/48000
+a=fmtp:101 0-16
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+
+    const sdpobj = sdp.create( testsdp )
+    sdpobj.select( "ilbc" )
+    const oursdpstr = sdpobj.toString()
+
+    expect( oursdpstr ).to.include( "RTP/AVP 97 101\r\n" )
+  } )
+
+  it( "select codecs and regenerate sdp 3", async () => {
+    const testsdp = `v=0
+o=Z 1608236465345 1 IN IP4 192.168.0.141
+s=Z
+c=IN IP4 192.168.0.141
+t=0 0
+m=audio 56802 RTP/AVP 8 0 9 97 106
+a=rtpmap:97 iLBC/8000
+a=fmtp:97 mode=20
+a=rtpmap:106 opus/48000/2
+a=fmtp:106 minptime=20; cbr=1; maxaveragebitrate=40000; useinbandfec=1
+a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
+
+    const sdpobj = sdp.create( testsdp )
+    sdpobj.select( "ilbc" )
+    const oursdpstr = sdpobj.toString()
+
+    expect( oursdpstr ).to.include( "RTP/AVP 97 101\r\n" )
   } )
 } )
