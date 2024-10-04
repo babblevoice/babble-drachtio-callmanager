@@ -258,7 +258,7 @@ describe( "call object", function() {
     child.update()
 
     expect( requestoptions.method ).to.equal( "UPDATE" )
-    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "<sip:0123456789@someotherrealm.com>;party=calling;screen=yes" )
+    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"0123456789\" <sip:0123456789@someotherrealm.com>;party=calling;screen=yes" )
 
     /* simulate wire to propogate hangup */
     await call.hangup( call.hangupcodes.NORMAL_CLEARING, false, "wire" )
@@ -790,7 +790,7 @@ describe( "call object", function() {
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "<sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
+    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "\"0000000000\" <sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
     expect( createuacoptions.late ).to.be.true
   } )
 
@@ -1173,7 +1173,7 @@ describe( "call object", function() {
 
 
     /* no default configured */
-    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "<sip:012345789@localhost.localdomain>;party=calling;screen=yes" )
+    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"012345789\" <sip:012345789@localhost.localdomain>;party=calling;screen=yes" )
 
     c._onhangup( "wire" )
 
