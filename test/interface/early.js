@@ -52,6 +52,9 @@ describe( "call early", function() {
     const messagestate = projectrtpmessage.newstate()
     const channelmessages = []
     let opencount = 0
+
+    let ourclosepromise
+    const closepromise = new Promise( resolve => ourclosepromise = resolve )
     
     connection.on( "data", ( data ) => {
       projectrtpmessage.parsemessage( messagestate, data, ( msg ) => {
@@ -87,6 +90,7 @@ describe( "call early", function() {
           } else if ( "close" === msg.channel ) {
             connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}
             } ) )
+            ourclosepromise()
           } else if ( "mix" === msg.channel ) {
             mixing = true
           }
@@ -140,6 +144,12 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     const newcall = await call.newuac( { "contact": "callto" } )
     
     await call._onhangup( "wire" )
+
+    await closepromise
+    
+    connection.destroy()
+    rtpserver.destroy()
+
     expect( newcall.state.early ).to.be.true
     expect( call.state.early ).to.be.true
     expect( mixing ).to.be.true
@@ -158,8 +168,6 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     expect( msginfo.body ).to.include( "audio 10010 RTP/AVP" )
 
-    connection.destroy()
-    rtpserver.destroy()
   } )
 
 
@@ -180,6 +188,9 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     /* Setup the mock RTP server */ 
     const srfscenario = new srf.srfscenario()
     const rtpserver = callmanager.projectrtp.proxy.addnode( { host: "127.0.0.1", port: 9002 } )
+
+    let ourclosepromise
+    const closepromise = new Promise( resolve => ourclosepromise = resolve )
 
     let connection
     const mockrtp = net.createServer()
@@ -220,6 +231,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
             } else if ( "close" === msg.channel ) {
               connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}
               } ) )
+              ourclosepromise()
             } else if ( "mix" === msg.channel ) {
               mixing = true
             }
@@ -281,6 +293,9 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     const newcall = await call.newuac( { "contact": "callto" } )
     
     await call._onhangup( "wire" )
+
+    await closepromise 
+
     expect( newcall.state.early ).to.be.true
     expect( call.state.early ).to.be.true
     expect( mixing ).to.be.true
@@ -332,6 +347,9 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     const messagestate = projectrtpmessage.newstate()
     const channelmessages = []
     let opencount = 0
+
+    let ourclosepromise
+    const closepromise = new Promise( resolve => ourclosepromise = resolve )
     
     connection.on( "data", ( data ) => {
       projectrtpmessage.parsemessage( messagestate, data, ( msg ) => {
@@ -366,6 +384,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
             opencount++
           } else if ( "close" === msg.channel ) {
             connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}}))
+            ourclosepromise()
           } else if ( "mix" === msg.channel ) {
             mixing = true
           }
@@ -427,7 +446,8 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     const newcall = await call.newuac( { "contact": "callto" } )
     
     await call._onhangup( "wire" )
-    
+    await closepromise
+
     expect( newcall.state.early ).to.be.true
     expect( call.state.early ).to.be.true
     expect( mixing ).to.be.true
@@ -485,6 +505,9 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     const messagestate = projectrtpmessage.newstate()
     const channelmessages = []
     let opencount = 0
+
+    let ourclosepromise
+    const closepromise = new Promise( resolve => ourclosepromise = resolve )
     
     connection.on( "data", ( data ) => {
       projectrtpmessage.parsemessage( messagestate, data, ( msg ) => {
@@ -519,6 +542,7 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
             opencount++
           } else if ( "close" === msg.channel ) {
             connection.write( projectrtpmessage.createmessage( {"id": msg.id,"uuid":msg.uuid,"action":"close","reason":"requested","stats":{"in":{"mos":4.5,"count":586,"dropped":0,"skip":0},"out":{"count":303,"skip":0},"tick":{"meanus":124,"maxus":508,"count":597}}, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d4566"}} ) )
+            ourclosepromise()
           } else if ( "mix" === msg.channel ) {
             mixing = true
           }
@@ -580,6 +604,10 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
     
     await new Promise( ( resolve ) => setTimeout( () => resolve(), 500 ) )
     await call._onhangup( "wire" )
+    await closepromise
+
+    connection.destroy()
+    rtpserver.destroy()
     
     expect( newcall.state.early ).to.be.true
     expect( call.state.early ).to.be.true
@@ -600,8 +628,6 @@ a=sendrecv`.replace(/(\r\n|\n|\r)/gm, "\r\n")
 
     expect( msginfo.body ).to.include( "UDP/TLS/RTP/SAVPF" )
 
-    connection.destroy()
-    rtpserver.destroy()
   } )
 
 } )

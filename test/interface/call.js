@@ -258,7 +258,7 @@ describe( "call object", function() {
     child.update()
 
     expect( requestoptions.method ).to.equal( "UPDATE" )
-    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"0123456789\" <sip:0123456789@someotherrealm.com>;party=calling;screen=yes" )
+    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"0123456789\" <sip:0123456789@someotherrealm.com>;party=called;screen=yes" )
 
     /* simulate wire to propogate hangup */
     await call.hangup( call.hangupcodes.NORMAL_CLEARING, false, "wire" )
@@ -790,7 +790,7 @@ describe( "call object", function() {
 
     await call.newuac( options, { "early": ( c ) => c.hangup() } )
 
-    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "\"0000000000\" <sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
+    expect( createuacoptions.headers[ "remote-party-id" ] ).to.equal( "\"0000000000\" <sip:0000000000@localhost.localdomain>;party=called;screen=yes" )
     expect( createuacoptions.late ).to.be.true
   } )
 
@@ -850,7 +850,7 @@ describe( "call object", function() {
 
     expect( requestoptions.method ).to.equal( "UPDATE" )
     expect( requestoptions.body ).to.be.a( "string" )
-    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"Kermit\" <sip:kermy@localhost.localdomain>;party=calling;screen=yes" )
+    expect( requestoptions.headers[ "remote-party-id" ] ).to.equal( "\"Kermit\" <sip:kermy@localhost.localdomain>;party=called;screen=yes" )
 
   } )
 
@@ -1068,20 +1068,15 @@ describe( "call object", function() {
     setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"start","reason":"new","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 1 )
     setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"end","reason":"completed","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 10 )
     c.channels.audio.play( { "files": [ { "wav": "/voicemail/greeting.wav", "alt": "greeting" } ] } )
-    let ev = await c.waitforanyevent( { "action": "play", "event": "end" } )
-    expect( ev.action ).to.equal( "play" )
-    expect( ev.event ).to.equal( "end" )
-    expect( ev.reason ).to.equal( "completed" )
+    const playgreetendev = await c.waitforanyevent( { "action": "play", "event": "end" } )
 
     setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"start","reason":"new","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ) )
     setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"play","event":"end","reason":"completed","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ) )
     c.channels.audio.play( { "files": [ { "wav": "/voicemail/boing.wav", "alt": "" } ] } )
-    ev = await c.waitforanyevent( { "action": "play", "event": "end" } )
-    expect( ev.action ).to.equal( "play" )
-    expect( ev.event ).to.equal( "end" )
-    expect( ev.reason ).to.equal( "completed" )
+    const playendev = await c.waitforanyevent( { "action": "play", "event": "end" } )
 
     setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"record","file":"/tmp/voicemail/recording/03039cdb-1949-407d-91d6-15ba6894955c.wav","event":"recording","status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 5 )
+    setTimeout( () => connection.write( projectrtpmessage.createmessage( {"id": msgid,"uuid":"6d8ba7bb-44b9-4989-9aaf-5d938b496c49","action":"record","file":"/tmp/voicemail/recording/03039cdb-1949-407d-91d6-15ba6894955c.wav","event":"finished","event":"finished.channelclosed", "transcription": "test recording for voicemail", "emailed": true, "filesize": 160684, "status":{"channel":{"available":4995,"current":5},"workercount":12,"instance":"ca0ef6a9-9174-444d-bdeb-4c9eb54d5c94"}} ) ), 10 )
     
     c.channels.audio.record( {
       "file": "/voicemail/jhjhjgjhgjg.wav",
@@ -1100,15 +1095,25 @@ describe( "call object", function() {
       c._onhangup( "wire" )
     }, 50 )
 
-    ev = await c.waitforanyevent( { "action": "record", "event": /finished.*|\*/ }, 10000 )
-    expect( ev.action ).to.equal( "record" )
-    expect( ev.event ).to.equal( "finished.channelclosed" )
-    expect( ev.transcription ).to.equal( "test recording for voicemail" )
-    expect( ev.emailed ).to.be.true
-    expect( ev.filesize ).to.equal( 160684 )
+    const recordfinishev = await c.waitforanyevent( { "action": "record", "event": /finished.*|\*/ }, 10000 )
 
     connection.destroy()
     await rtpserver.destroy()
+
+    expect( playgreetendev.action ).to.equal( "play" )
+    expect( playgreetendev.event ).to.equal( "end" )
+    expect( playgreetendev.reason ).to.equal( "completed" )
+
+    expect( playendev.action ).to.equal( "play" )
+    expect( playendev.event ).to.equal( "end" )
+    expect( playendev.reason ).to.equal( "completed" )
+
+    expect( recordfinishev.action ).to.equal( "record" )
+    expect( recordfinishev.event ).to.equal( "finished.channelclosed" )
+    expect( recordfinishev.transcription ).to.equal( "test recording for voicemail" )
+    expect( recordfinishev.emailed ).to.be.true
+    expect( recordfinishev.filesize ).to.equal( 160684 )
+
   } )
 
   it( "set get moh", async function() {
@@ -1152,7 +1157,7 @@ describe( "call object", function() {
     const c = await call.newuac( options )
 
     /* no default configured */
-    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"Hello\" <sip:0000000000@localhost.localdomain>;party=calling;screen=yes" )
+    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"Hello\" <sip:0000000000@localhost.localdomain>;party=called;screen=yes" )
 
     c._onhangup( "wire" )
 
@@ -1173,7 +1178,7 @@ describe( "call object", function() {
 
 
     /* no default configured */
-    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"012345789\" <sip:012345789@localhost.localdomain>;party=calling;screen=yes" )
+    expect( c.options.headers[ "remote-party-id" ] ).to.equal( "\"012345789\" <sip:012345789@localhost.localdomain>;party=called;screen=yes" )
 
     c._onhangup( "wire" )
 
