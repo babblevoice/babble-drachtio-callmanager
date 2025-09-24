@@ -162,6 +162,30 @@ npm link projectrtp
 npm link babble-drachtio-registrar
 npm link babble-drachtio-auth
 
+If you want to test then projectrtp needs to be able to build locally, this uses the latest projectrtp docker image.
+
+```bash
+docker run --rm -it \
+  -e HOME=/usr/src/app \
+  -v "$(pwd)":/usr/src/app \
+  -w /usr/src/app \
+  tinpotnick/projectrtp \
+  npm test
+
+```
+
+or for a specific test
+
+```bash
+docker run --rm -it \
+  -e HOME=/usr/src/app \
+  -v "$(pwd)":/usr/src/app \
+  -w /usr/src/app \
+  tinpotnick/projectrtp \
+  ./node_modules/mocha/bin/mocha --recursive --check-leaks --grep 'Create call and send 183 - early - SAVPF'
+
+```
+
 # References
 
 * SIP: Session Initiation Protocol [RFC 3261](https://tools.ietf.org/html/rfc3261)
