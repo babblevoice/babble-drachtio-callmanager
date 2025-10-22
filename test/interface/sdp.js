@@ -274,14 +274,14 @@ a=ssrc:2706351154 label:83ac3abd-cc86-427a-9cb7-ebac0c73964a`.replace(/(\r\n|\n|
       .setconnectionaddress( "127.0.0.1" )
       .setaudioport( 4 )
       .addssrc( 44 )
-      .secure( "ourfingerprint", "act" )
+      .secure( "ourfingerprint", "active" )
       .addicecandidates( "127.0.0.1", 4 )
       .rtcpmux()
     
     expect( oursdp.sdp.media[ 0 ].rtcpMux ).to.equal( "rtcp-mux" )
     expect( oursdp.sdp.media[ 0 ].fingerprint.type ).to.equal( "sha-256" )
     expect( oursdp.sdp.media[ 0 ].fingerprint.hash ).to.equal( "ourfingerprint" )
-    expect( oursdp.sdp.media[ 0 ].setup ).to.equal( "act" )
+    expect( oursdp.sdp.media[ 0 ].setup ).to.equal( "active" )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].foundation ).to.equal( 1 )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].component ).to.equal( 1 )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].transport ).to.equal( "udp" )
@@ -290,6 +290,14 @@ a=ssrc:2706351154 label:83ac3abd-cc86-427a-9cb7-ebac0c73964a`.replace(/(\r\n|\n|
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].port ).to.equal( 4 )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].type ).to.equal( "host" )
     expect( oursdp.sdp.media[ 0 ].candidates[ 0 ].generation ).to.equal( 0 )
+
+    const oursdpstr = oursdp.toString()
+
+    const clean = oursdpstr.trim().replace( /\r/g, "" )
+
+    expect( clean ).to.match( /^a=group:BUNDLE 0/m )
+    expect( clean ).to.match( /^a=mid:0/m )
+
   } )
 
   it( "sdp pcma real life sdp avon", async function() {
