@@ -4,7 +4,7 @@
   "description": "Call processing to create a PBX",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --recursive --check-leaks",
+    "test": "./node_modules/mocha/bin/_mocha --recursive --check-leaks",
     "docs": "jsdoc -c jsdoc.conf.json"
   },
   "author": "Nick Knight <nick@babblevoice.com>",
@@ -35,7 +35,7 @@
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^15.6.1",
     "eslint-plugin-promise": "^6.1.1",
-    "mocha": "^9.2.2",
+    "mocha": "^11.7.4",
     "typescript": "^4.9.4"
   },
   "bugs": {
