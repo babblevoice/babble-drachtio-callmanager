@@ -297,6 +297,29 @@ a=ssrc:2706351154 label:83ac3abd-cc86-427a-9cb7-ebac0c73964a`.replace(/(\r\n|\n|
 
     expect( clean ).to.match( /^a=group:BUNDLE 0/m )
     expect( clean ).to.match( /^a=mid:0/m )
+    expect( clean ).to.not.match( /^a=ice-lite/m )
+
+  } )
+
+  it( "sdp webrtc generate with ice-lite", async function() {
+
+    const oursdp = sdp.create()
+      .addcodecs( "pcma" )
+      .setconnectionaddress( "127.0.0.1" )
+      .setaudioport( 4 )
+      .addssrc( 44 )
+      .secure( "ourfingerprint", "active" )
+      .addicecandidates( "127.0.0.1", 4 )
+      .rtcpmux()
+      .icelite()
+
+    expect( oursdp.sdp.icelite ).to.equal( "ice-lite" )
+
+    const oursdpstr = oursdp.toString()
+    const clean = oursdpstr.trim().replace( /\r/g, "" )
+
+    expect( clean ).to.match( /^a=ice-lite/m )
+    expect( clean ).to.match( /^a=group:BUNDLE 0/m )
 
   } )
 
