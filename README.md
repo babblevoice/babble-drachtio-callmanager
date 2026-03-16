@@ -167,7 +167,7 @@ If you want to test then projectrtp needs to be able to build locally, this uses
 ```bash
 docker run --rm -it \
   -e HOME=/usr/src/app \
-  -v "$(pwd)":/usr/src/app \
+  -v "$(pwd)":/usr/src/app:Z \
   -w /usr/src/app \
   tinpotnick/projectrtp \
   npm test
@@ -179,10 +179,10 @@ or for a specific test
 ```bash
 docker run --rm -it \
   -e HOME=/usr/src/app \
-  -v "$(pwd)":/usr/src/app \
+  -v "$(pwd)":/usr/src/app:Z \
   -w /usr/src/app \
   tinpotnick/projectrtp \
-  ./node_modules/mocha/bin/mocha --recursive --check-leaks --grep 'Create call and send 183 - early - SAVPF'
+  ./node_modules/mocha/bin/_mocha --recursive --check-leaks --grep 'Create call and send 183 - early - SAVPF'
 
 ```
 
