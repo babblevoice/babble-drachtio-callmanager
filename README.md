@@ -162,28 +162,48 @@ npm link projectrtp
 npm link babble-drachtio-registrar
 npm link babble-drachtio-auth
 
-If you want to test then projectrtp needs to be able to build locally, this uses the latest projectrtp docker image.
+# Building and testing
+
+The interface tests boot a **real** projectrtp engine (`projectrtp.run()`) rather
+than mocking it. `@babblevoice/projectrtp` 3.x is a Rust napi addon published as
+source (`rust/` + `libilbc/`) with no install hook, so the native `.so` has to be
+compiled and dropped into `node_modules/@babblevoice/projectrtp/build/Release/projectrtp.node`
+before the suite can run. The `Dockerfile` does this in a `rust-builder` stage
+(mirroring babble-rtp) so you don't need a local Rust/cmake toolchain.
+
+Run the whole suite:
 
 ```bash
-docker run --rm -it \
-  -e HOME=/usr/src/app \
-  -v "$(pwd)":/usr/src/app \
-  -w /usr/src/app \
-  tinpotnick/projectrtp \
-  npm test
-
+docker build --target test -t callmanager:test .
+docker run --rm callmanager:test
 ```
 
-or for a specific test
+Run a single test (override the default `npm test` command):
+
+```bash
+docker run --rm callmanager:test \
+  npx mocha --recursive --check-leaks --grep 'Create call and send 183 - early - SAVPF'
+```
+
+To iterate on test code without rebuilding the image each time, mount your working
+tree over the source (the built engine in the image's `node_modules` is reused):
 
 ```bash
 docker run --rm -it \
-  -e HOME=/usr/src/app \
-  -v "$(pwd)":/usr/src/app \
-  -w /usr/src/app \
-  tinpotnick/projectrtp \
-  ./node_modules/mocha/bin/mocha --recursive --check-leaks --grep 'Create call and send 183 - early - SAVPF'
+  -v "$(pwd)/lib":/usr/src/callmanager/lib:Z \
+  -v "$(pwd)/test":/usr/src/callmanager/test:Z \
+  -v "$(pwd)/index.js":/usr/src/callmanager/index.js:Z \
+  callmanager:test
+```
 
+### Building the engine locally (no Docker)
+
+If you have Rust + cmake installed you can build the addon straight into the
+installed package and run the tests on the host:
+
+```bash
+( cd node_modules/@babblevoice/projectrtp && npm run build )   # cargo build → build/Release/projectrtp.node
+npm test
 ```
 
 # References
