@@ -268,8 +268,8 @@ describe( "call object", function() {
     expect( postmixepoch ).to.be.a( "number" ).that.is.above( 0 )
 
     /* fire-once: both hooks have been cleared off the parent leg */
-    expect( call.vars.preconnect ).to.be.undefined
-    expect( call.vars.postconnect ).to.be.undefined
+    expect( call.callbacks.preconnect ).to.be.undefined
+    expect( call.callbacks.postconnect ).to.be.undefined
 
     await child.hangup()
     await call.hangup()
@@ -334,8 +334,8 @@ describe( "call object", function() {
     expect( postmixepoch ).to.be.a( "number" ).that.is.above( 0 )
 
     /* fire-once: a second adopt-and-mix does not refire */
-    expect( call.vars.preconnect ).to.be.undefined
-    expect( call.vars.postconnect ).to.be.undefined
+    expect( call.callbacks.preconnect ).to.be.undefined
+    expect( call.callbacks.postconnect ).to.be.undefined
     const agent2 = await call.newuac( { "contact": "1000@dummy", "orphan": true } )
     call.adopt( agent2, true )
     expect( precount ).to.equal( 1 )
