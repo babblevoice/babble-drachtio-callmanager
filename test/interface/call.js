@@ -225,6 +225,134 @@ describe( "call object", function() {
 
   } )
 
+  it( "call.preconnect/postconnect - parent-leg hooks fire around the mix when a child bridges (ringall/calldevice path)", async function() {
+
+    const srfscenario = new srf.srfscenario()
+
+    const call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let precount = 0, postcount = 0
+    let preleg, postleg
+    let premixepoch, postmixepoch
+    let preaudio
+
+    /* hooks are registered on the parent (caller) leg, before the child exists */
+    call.preconnect( ( c ) => {
+      precount++
+      preleg = c
+      premixepoch = c.epochs.mix   /* not mixed yet -> 0 */
+      preaudio = c.channels.audio  /* channel must be open before the mix */
+    } )
+    call.postconnect( ( c ) => {
+      postcount++
+      postleg = c
+      postmixepoch = c.epochs.mix  /* mixed now -> > 0 */
+    } )
+
+    /* a normal (non-orphan) newuac - the child bridges via #answerparent */
+    const child = await call.newuac( { "contact": "1000@dummy" } )
+
+    /* each fired exactly once, received the connecting child */
+    expect( precount ).to.equal( 1 )
+    expect( postcount ).to.equal( 1 )
+    expect( preleg ).to.equal( child )
+    expect( postleg ).to.equal( child )
+
+    /* preconnect ran BEFORE the mix, with a valid (open) audio channel;
+       postconnect ran AFTER the mix */
+    expect( premixepoch ).to.equal( 0 )
+    expect( preaudio ).to.be.an( "object" )
+    expect( postmixepoch ).to.be.a( "number" ).that.is.above( 0 )
+
+    /* fire-once: both hooks have been cleared off the parent leg */
+    expect( call.vars.preconnect ).to.be.undefined
+    expect( call.vars.postconnect ).to.be.undefined
+
+    await child.hangup()
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+  } )
+
+  it( "call.preconnect/postconnect - parent-leg hooks fire around adopt-and-mix (enterprise/ring-group path)", async function() {
+
+    const srfscenario = new srf.srfscenario()
+
+    const call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    await call.answer()
+
+    /* enterprise queues create the agent leg orphaned (no parent), so it does
+       NOT bridge via #answerparent - it is later adopted by the winning caller */
+    const agent = await call.newuac( { "contact": "1000@dummy", "orphan": true } )
+    expect( agent.parent ).to.be.undefined
+
+    let precount = 0, postcount = 0
+    let preleg, postleg
+    let premixepoch, postmixepoch
+    let resolveconnected
+    const connected = new Promise( ( resolve ) => { resolveconnected = resolve } )
+
+    call.preconnect( ( c ) => {
+      precount++
+      preleg = c
+      premixepoch = c.epochs.mix
+    } )
+    call.postconnect( ( c ) => {
+      postcount++
+      postleg = c
+      postmixepoch = c.epochs.mix
+      resolveconnected()
+    } )
+
+    /* the orphaned agent existing did not fire either hook */
+    expect( precount ).to.equal( 0 )
+    expect( postcount ).to.equal( 0 )
+
+    /* the caller adopts-and-mixes the agent - this is the connect moment */
+    call.adopt( agent, true )
+    await connected
+
+    expect( precount ).to.equal( 1 )
+    expect( postcount ).to.equal( 1 )
+    expect( preleg ).to.equal( agent )
+    expect( postleg ).to.equal( agent )
+
+    /* preconnect ran before the mix, postconnect after */
+    expect( premixepoch ).to.equal( 0 )
+    expect( postmixepoch ).to.be.a( "number" ).that.is.above( 0 )
+
+    /* fire-once: a second adopt-and-mix does not refire */
+    expect( call.vars.preconnect ).to.be.undefined
+    expect( call.vars.postconnect ).to.be.undefined
+    const agent2 = await call.newuac( { "contact": "1000@dummy", "orphan": true } )
+    call.adopt( agent2, true )
+    expect( precount ).to.equal( 1 )
+    expect( postcount ).to.equal( 1 )
+
+    await agent2.hangup()
+    await agent.hangup()
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+  } )
+
   it( "uas.newuac - create uac by entity no registrar", async function() {
     const srfscenario = new srf.srfscenario()
 
