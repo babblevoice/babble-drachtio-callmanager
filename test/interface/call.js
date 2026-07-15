@@ -177,6 +177,54 @@ describe( "call object", function() {
 
   } )
 
+  it( "uas.newuac - onconnect callback is called after bridge with valid audio", async function() {
+
+    const srfscenario = new srf.srfscenario()
+
+    const call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let onconnectcount = 0
+    let connectedcall
+    let audioatconnect
+    let mixepochatconnect
+
+    const child = await call.newuac( { "contact": "1000@dummy" }, {
+      "onconnect": ( c ) => {
+        onconnectcount++
+        connectedcall = c
+        audioatconnect = c.channels.audio
+        mixepochatconnect = c.epochs.mix
+      }
+    } )
+
+    /* the handler ran exactly once, during newuac */
+    expect( onconnectcount ).to.equal( 1 )
+
+    /* it received the connected (child) call */
+    expect( connectedcall ).to.equal( child )
+
+    /* the audio channel was a valid object inside the handler - it must not
+       go undefined/false (the regression this callback originally exposed) */
+    expect( audioatconnect ).to.be.an( "object" )
+    expect( child.channels.audio ).to.equal( audioatconnect )
+
+    /* it fired AFTER the mix, i.e. once genuinely connected/bridged */
+    expect( mixepochatconnect ).to.be.a( "number" ).that.is.above( 0 )
+
+    await child.hangup()
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+  } )
+
   it( "uas.newuac - create uac by entity no registrar", async function() {
     const srfscenario = new srf.srfscenario()
 
