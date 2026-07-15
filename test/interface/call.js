@@ -517,6 +517,47 @@ describe( "call object", function() {
     expect( child.state.cleaned ).to.be.true
   } )
 
+  it( "uas.newuac - createUAC never settles - watchdog forces return", async function() {
+
+    const srfscenario = new srf.srfscenario()
+    /* simulate a far end that never sends a final response and never honours
+       CANCEL: createUAC never resolves or rejects. Without the settle watchdog
+       newuac would hang here forever (and this test would hit the mocha timeout). */
+    srfscenario.oncreateUAC( () => new Promise( () => {} ) )
+
+    const call = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    const start = Date.now()
+    const child = await call.newuac( { "contact": "1000@dummy", "uactimeout": 50 } )
+    const elapsed = Date.now() - start
+
+    /* the watchdog must make newuac return promptly (~uactimeout) rather than
+       block on the never-settling createUAC */
+    expect( elapsed ).to.be.below( 1000 )
+
+    expect( child.destroyed ).to.be.true
+    expect( child.hangup_cause.sip ).to.equal( 408 )
+    expect( child.hangup_cause.reason ).to.equal( "REQUEST_TIMEOUT" )
+    expect( child.hangup_cause.src ).to.equal( "us" )
+
+    /* clean up runs on the event loop */
+    await new Promise( resolve => setTimeout( resolve, 100 ) )
+
+    await call.hangup()
+
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+
+    expect( call.state.cleaned ).to.be.true
+    expect( child.state.cleaned ).to.be.true
+  } )
+
   it( "uas.newuac - child remote hangup", async function() {
 
     const srfscenario = new srf.srfscenario()
