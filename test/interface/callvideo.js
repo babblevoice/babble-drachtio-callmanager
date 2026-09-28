@@ -15,6 +15,8 @@ const srf = require( "../mock/srf.js" )
 
 /* These DO NOT form part of our interface */
 const clearcallmanager = require( "../../lib/callmanager.js" )._clear
+/* the running callmanager's options (a scenario must have created it) */
+const globalcmoptions = () => require( "../../lib/callmanager.js" ).callmanager( {} ).options
 const callstore = require( "../../lib/store.js" )
 const call = require( "../../lib/call.js" )
 const projectrtp = require( "@babblevoice/projectrtp" ).projectrtp
@@ -336,6 +338,8 @@ describe( "call video codec convergence", function() {
     /* and staff's relay leg carries h264's payload type (102), not vp8's (96)
        that staff listed first (#createvideochandef honours the pin) */
     expect( opened.get( staff.channels.video ).remote.codec ).to.equal( 102 )
+    /* labelled, so the relay can read frame sizes (relaylimits.maxfs) */
+    expect( opened.get( staff.channels.video ).remote.codecs ).to.deep.equal( { "h264": 102 } )
 
     expect( guest.channels.video ).to.be.an( "object" )
     expect( staff.channels.video ).to.be.an( "object" )
@@ -606,6 +610,7 @@ describe( "call video codec convergence", function() {
        the two are bridged, and by projectrtp's group rules relay only to
        each other */
     expect( opened.get( staff.channels.video ).remote.codec ).to.equal( 125 )
+    expect( opened.get( staff.channels.video ).remote.codecs ).to.deep.equal( { "h264": 125 } )
     expect( String( remotes.get( guest.channels.video ).codec ) ).to.equal( gv.pts.h264 )
     expect( remotes.get( guest.channels.video ).port ).to.equal( 30002 )
     expect( groups.peers( staff.channels.video ) ).to.deep.equal( [ guest.channels.video ] )
@@ -797,6 +802,8 @@ describe( "call video codec convergence", function() {
     expect( captured.guestcodec ).to.equal( "vp8" )
     expect( videoof( captured.staffanswer ).codecs ).to.deep.equal( [ "vp8" ] )
     expect( opened.get( staff.channels.video ).remote.codec ).to.equal( 96 )
+    /* labelled, so the relay can read frame sizes (relaylimits.maxfs) */
+    expect( opened.get( staff.channels.video ).remote.codecs ).to.deep.equal( { "vp8": 96 } )
     expect( mixed( mixes, guest.channels.video, staff.channels.video ) ).to.be.true
 
     await teardown( staff, guest )
@@ -1196,14 +1203,15 @@ describe( "call video codec convergence", function() {
    * queue shape: adopt-and-mix). Nodes are modelled as a remote leg has
    * them, connection.instance; a channel staff's node opens is on node-a.
    * @param { boolean } staffvideo - staff negotiates video
+   * @param { object } [ guestoptions ] - extra newuac options for the guest
    * @returns { Promise< object > }
    */
-  async function twonodes( staffvideo ) {
+  async function twonodes( staffvideo, guestoptions = {} ) {
     const r = await scenario( [ "vp8" ], [ "vp8" ] )
     const { staff } = r
     if( staffvideo ) staff.options.video = true
     await staff.answer()
-    const guest = await call.newuac( { "contact": "1000@dummy", "video": true } )
+    const guest = await call.newuac( { "contact": "1000@dummy", "video": true, ...guestoptions } )
     expect( guest.channels.video ).to.be.an( "object" )
 
     const nodea = { "instance": "node-a" }
@@ -1246,6 +1254,7 @@ describe( "call video codec convergence", function() {
     expect( opened.get( guest.channels.video ).relay ).to.be.true
     expect( opened.get( guest.channels.video ).remote.port ).to.equal( 30002 )
     expect( String( opened.get( guest.channels.video ).remote.codec ) ).to.equal( "96" )
+    expect( opened.get( guest.channels.video ).remote.codecs ).to.deep.equal( { "vp8": opened.get( guest.channels.video ).remote.codec } )
 
     /* the reinvite offered the new leg's port, not the old node's */
     expect( reoffers ).to.have.lengthOf( 1 )
@@ -1483,5 +1492,292 @@ describe( "call video codec convergence", function() {
     expect( staff.videomonitor.history ).to.have.lengthOf( 0 )
 
     await teardown( staff )
+  } )
+  /* ---- video limits: enforced by the relay, advertised in our SDP ---- */
+
+  /* lib/call.js videolimitdefaults, burst derived as 1 s of bitrate */
+  const defaultlimits = { "bitrate": 2000000, "burst": 250000, "packetrate": 1000, "framerate": 30, "maxfs": 3600 }
+
+  /** the video m-section of an SDP string */
+  function videosection( sdp ) {
+    return mlines( sdp ).find( ( m ) => "video" === m.type ).text
+  }
+
+  /** the b= lines of a section */
+  function blines( section ) {
+    return section.split( "\r\n" ).filter( ( l ) => l.startsWith( "b=" ) )
+  }
+
+  it( "video limits: every relay leg is opened with relaylimits, and staff's answer and the guest's offer both advertise them", async function() {
+
+    const { staff, captured } = await scenario( [ "vp8", "h264" ], [ "vp8" ] )
+    const guest = await staff.newuac( { "contact": "1000@dummy", "video": true } )
+    expect( guest.channels.video ).to.be.an( "object" )
+    expect( staff.channels.video ).to.be.an( "object" )
+
+    /* both relay legs, as projectrtp received them */
+    expect( relayopens ).to.have.lengthOf( 2 )
+    for( const def of relayopens ) expect( def.relaylimits ).to.deep.equal( defaultlimits )
+    expect( opened.get( staff.channels.video ).relaylimits ).to.deep.equal( defaultlimits )
+    expect( opened.get( guest.channels.video ).relaylimits ).to.deep.equal( defaultlimits )
+    /* audio channels are not relay legs */
+    expect( opened.get( staff.channels.audio ).relaylimits ).to.be.undefined
+
+    /* and the SDP both parties get says the same, just under the cap */
+    for( const sdp of [ captured.staffanswer, captured.guestoffer ] ) {
+      const video = videosection( sdp )
+      expect( blines( video ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+      expect( video ).to.match( /^a=fmtp:96 max-fs=3600;max-fr=30$/m )
+      expect( video ).to.match( /^a=framerate:30$/m )
+      expect( blines( mlines( sdp )[ 0 ].text ) ).to.deep.equal( [] )
+    }
+    /* our offer's h264 stays at 3.1 - exactly the default limits */
+    expect( captured.guestoffer ).to.match( /^a=fmtp:\d+ profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1$/m )
+
+    await teardown( staff, guest )
+  } )
+
+  it( "video limits: options.videolimits flow per call to the relay leg and that leg's SDP", async function() {
+
+    const { staff, captured } = await scenario( [ "vp8" ], [ "vp8" ] )
+    staff.options.videolimits = { "bitrate": 1000000, "framerate": 15, "maxfs": 1200 }
+    /* bad values fall back to the default rather than reaching projectrtp */
+    const guest = await staff.newuac( { "contact": "1000@dummy", "video": true,
+      "videolimits": { "bitrate": 500000, "burst": 100000, "packetrate": 300, "framerate": -1, "maxfs": "junk" } } )
+
+    expect( opened.get( staff.channels.video ).relaylimits ).to.deep.equal(
+      { "bitrate": 1000000, "burst": 125000, "packetrate": 1000, "framerate": 15, "maxfs": 1200 } )
+    expect( opened.get( guest.channels.video ).relaylimits ).to.deep.equal(
+      { "bitrate": 500000, "burst": 100000, "packetrate": 300, "framerate": 30, "maxfs": 3600 } )
+
+    const staffvideo = videosection( captured.staffanswer )
+    expect( blines( staffvideo ) ).to.deep.equal( [ "b=AS:900", "b=TIAS:850000" ] )
+    expect( staffvideo ).to.match( /^a=fmtp:96 max-fs=1200;max-fr=15$/m )
+    expect( staffvideo ).to.match( /^a=framerate:15$/m )
+
+    const guestvideo = videosection( captured.guestoffer )
+    expect( blines( guestvideo ) ).to.deep.equal( [ "b=AS:450", "b=TIAS:425000" ] )
+    expect( guestvideo ).to.match( /^a=fmtp:96 max-fs=3600;max-fr=30$/m )
+
+    await teardown( staff, guest )
+  } )
+
+  it( "video limits: 0 is unlimited - passed to the relay as 0, and nothing advertised", async function() {
+
+    const { staff, captured } = await scenario( [ "vp8" ], [ "vp8" ] )
+    staff.options.video = true
+    staff.options.videolimits = { "bitrate": 0, "framerate": 0, "maxfs": 0 }
+    await staff.answer()
+
+    expect( opened.get( staff.channels.video ).relaylimits ).to.deep.equal(
+      { "bitrate": 0, "burst": 0, "packetrate": 1000, "framerate": 0, "maxfs": 0 } )
+    const video = videosection( captured.staffanswer )
+    expect( mlines( captured.staffanswer )[ 1 ].port ).to.equal( staff.channels.video.local.port )
+    expect( blines( video ) ).to.deep.equal( [] )
+    expect( video ).to.not.match( /max-f|a=framerate/ )
+
+    await teardown( staff )
+  } )
+
+  it( "video limits: a re-offer, a re-answer and a hold all carry them", async function() {
+
+    const { staff, guest } = await bridgedvideocall()
+
+    let reoffer
+    guest._dialog.request = async ( opts ) => {
+      reoffer = opts.body
+      return { "msg": { "status": 200, "body": guestanswer( opts.body, [ "vp8" ] ).sdp } }
+    }
+    await guest.reinvite()
+    expect( blines( videosection( reoffer ) ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+    expect( videosection( reoffer ) ).to.match( /^a=fmtp:96 max-fs=3600;max-fr=30$/m )
+
+    const reanswer = reinviteinto( staff, staffoffer( [ "vp8" ] ) )
+    expect( blines( videosection( reanswer ) ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+    expect( videosection( reanswer ) ).to.match( /^a=fmtp:96 max-fs=3600;max-fr=30$/m )
+
+    const held = reinviteinto( staff, staffoffer( [ "vp8" ] ).replace( /a=sendrecv/g, "a=sendonly" ) )
+    expect( mlines( held )[ 1 ].direction ).to.equal( "recvonly" )
+    expect( blines( videosection( held ) ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+
+    await teardown( staff, guest )
+  } )
+
+  it( "video limits: the cross-node replacement relay leg is opened with the moved call's limits", async function() {
+
+    const guestlimits = { "bitrate": 800000, "burst": 50000, "packetrate": 400, "framerate": 20, "maxfs": 1620 }
+    const { staff, guest, reoffers } = await twonodes( true, { "videolimits": guestlimits } )
+    const oldguestvideo = guest.channels.video
+    expect( opened.get( oldguestvideo ).relaylimits ).to.deep.equal( guestlimits )
+
+    await staff.mix( guest )
+
+    /* opened by staff's node, but it is the guest's leg: the guest's limits */
+    expect( guest.channels.video ).to.not.equal( oldguestvideo )
+    expect( opened.get( guest.channels.video ).relay ).to.be.true
+    expect( opened.get( guest.channels.video ).relaylimits ).to.deep.equal( guestlimits )
+    expect( opened.get( staff.channels.video ).relaylimits ).to.deep.equal( defaultlimits )
+
+    /* and the re-offer from the new node says the same */
+    expect( reoffers ).to.have.lengthOf( 1 )
+    const video = videosection( reoffers[ 0 ] )
+    expect( blines( video ) ).to.deep.equal( [ "b=AS:720", "b=TIAS:680000" ] )
+    expect( video ).to.match( /^a=fmtp:96 max-fs=1620;max-fr=20$/m )
+
+    await teardown( staff, guest )
+  } )
+
+  it( "video limits: global and per-call videolimits merge field by field - defaults, then global, then per call", async function() {
+
+    const { staff } = await scenario( [ "vp8" ], [ "vp8" ] )
+    /* the callmanager's (global) options - the scenario's are copied over
+       index.js's defaults, so reach the live object through the manager */
+    globalcmoptions().videolimits = { "bitrate": 1000000, "framerate": 20 }
+    /* per call: only the frame rate - the global bitrate must survive */
+    staff.options.videolimits = { "framerate": 15 }
+    /* a per-call value that gives no limit falls through to the global one */
+    const guest = await staff.newuac( { "contact": "1000@dummy", "video": true,
+      "videolimits": { "maxfs": 1200, "framerate": -1 } } )
+
+    expect( opened.get( staff.channels.video ).relaylimits ).to.deep.equal(
+      { "bitrate": 1000000, "burst": 125000, "packetrate": 1000, "framerate": 15, "maxfs": 3600 } )
+    expect( opened.get( guest.channels.video ).relaylimits ).to.deep.equal(
+      { "bitrate": 1000000, "burst": 125000, "packetrate": 1000, "framerate": 20, "maxfs": 1200 } )
+
+    await teardown( staff, guest )
+  } )
+
+  it( "video limits: burst 0 is one second of bitrate; a fraction that rounds to 0 is not unlimited; maxfs has a floor of 99", async function() {
+
+    const { staff, captured } = await scenario( [ "vp8" ], [ "vp8" ] )
+    staff.options.video = true
+    staff.options.videolimits = { "bitrate": 800000, "burst": 0, "packetrate": 0.9, "framerate": 0.5, "maxfs": 40.7 }
+    await staff.answer()
+
+    /* burst 0 resolved as projectrtp resolves it; packetrate/framerate keep
+       their defaults rather than becoming 0 (= unlimited); maxfs raised to
+       H.264 level 1's 99 */
+    expect( opened.get( staff.channels.video ).relaylimits ).to.deep.equal(
+      { "bitrate": 800000, "burst": 100000, "packetrate": 1000, "framerate": 30, "maxfs": 99 } )
+    /* and the SDP says the same numbers the relay enforces */
+    const video = videosection( captured.staffanswer )
+    expect( video ).to.match( /^a=fmtp:96 max-fs=99;max-fr=30$/m )
+    expect( video ).to.match( /^a=framerate:30$/m )
+
+    await teardown( staff )
+  } )
+
+  /** staffoffer with its video codec under payload type pt instead of 96 */
+  function staffofferpt( pt ) {
+    return staffoffer( [ "vp8" ] )
+      .replace( "m=video 20002 RTP/AVP 96", "m=video 20002 RTP/AVP " + pt )
+      .replace( "a=rtpmap:96 VP8/90000", "a=rtpmap:" + pt + " VP8/90000" )
+  }
+
+  it( "re-INVITE moving the video payload type re-points the relay leg's codec, and only then", async function() {
+
+    const { staff, guest } = await bridgedvideocall()
+    const staffvideo = staff.channels.video
+    const guestvideo = guest.channels.video
+    const before = opened.get( staffvideo ).remote
+    expect( before.codec ).to.equal( 96 )
+
+    const remotes = []
+    const originalremote = channelproto.remote
+    channelproto.remote = function( r ) {
+      remotes.push( [ this, r ] )
+      return originalremote.call( this, r )
+    }
+    try {
+      /* same payload type (a session refresh): the leg is left alone */
+      reinviteinto( staff, staffoffer( [ "vp8" ] ) )
+      expect( remotes ).to.have.lengthOf( 0 )
+
+      /* vp8 moves to 98: our answer accepts 98, so the leg must declare 98 */
+      const answer = reinviteinto( staff, staffofferpt( 98 ) )
+      expect( videoof( answer ).pts ).to.deep.equal( { "vp8": "98" } )
+      const pointed = remotes.filter( ( [ c ] ) => c === staffvideo ).map( ( [ , r ] ) => r )
+      expect( pointed ).to.have.lengthOf( 1 )
+      expect( pointed[ 0 ].codec ).to.equal( 98 )
+      expect( pointed[ 0 ].codecs ).to.deep.equal( { "vp8": 98 } )
+      /* where the leg pointed before - not a new address */
+      expect( pointed[ 0 ].address ).to.equal( before.address )
+      expect( pointed[ 0 ].port ).to.equal( before.port )
+      /* no dtls block: remote() with one restarts the DTLS handshake */
+      expect( pointed[ 0 ] ).to.not.have.property( "dtls" )
+      /* the guest's leg is untouched (the relay forwards by label) */
+      expect( remotes.filter( ( [ c ] ) => c === guestvideo ) ).to.have.lengthOf( 0 )
+      expect( staff.channels.video ).to.equal( staffvideo )
+      expect( groups.peers( staffvideo ) ).to.deep.equal( [ guestvideo ] )
+
+      /* the same re-offer again: nothing more */
+      reinviteinto( staff, staffofferpt( 98 ) )
+      expect( remotes ).to.have.lengthOf( 1 )
+
+      /* a hold that also moves it back: re-pointed, and still held */
+      const held = reinviteinto( staff, staffoffer( [ "vp8" ] ).replace( /a=sendrecv/g, "a=sendonly" ) )
+      expect( mlines( held )[ 1 ].direction ).to.equal( "recvonly" )
+      expect( remotes ).to.have.lengthOf( 2 )
+      expect( remotes[ 1 ][ 0 ] ).to.equal( staffvideo )
+      expect( remotes[ 1 ][ 1 ].codec ).to.equal( 96 )
+      expect( remotes[ 1 ][ 1 ].codecs ).to.deep.equal( { "vp8": 96 } )
+    } finally {
+      // eslint-disable-next-line require-atomic-updates
+      channelproto.remote = originalremote
+    }
+
+    await teardown( staff, guest )
+  } )
+
+  /** staffofferpt as a WebRTC (DTLS-SRTP) offer */
+  function webrtcstaffoffer( pt ) {
+    const dtls = [
+      "a=ice-ufrag:K8PO",
+      "a=ice-pwd:3RU9dMh3eDbYsfJIyQ4ki5va",
+      "a=fingerprint:sha-256 73:D5:EC:C0:BF:A7:CA:42:1B:DE:B6:EA:CE:B9:D0:32:38:65:50:4A:27:BF:58:9A:DF:24:B2:10:53:58:88:B9",
+      "a=setup:actpass",
+      "a=rtcp-mux" ].join( "\r\n" )
+    return staffofferpt( pt )
+      .replace( /RTP\/AVP/g, "UDP/TLS/RTP/SAVPF" )
+      .replace( "a=fmtp:101 0-16", "a=fmtp:101 0-16\r\n" + dtls +
+        "\r\na=candidate:1 1 udp 2122260223 127.0.0.1 20000 typ host" )
+      .replace( "a=rtpmap:" + pt + " VP8/90000", "a=rtpmap:" + pt + " VP8/90000\r\n" + dtls +
+        "\r\na=candidate:1 1 udp 2122260223 127.0.0.1 20002 typ host" )
+  }
+
+  it( "re-INVITE moving the video payload type on a WebRTC leg re-points the codec without restarting DTLS", async function() {
+
+    const r = await scenario( [ "vp8" ], [ "vp8" ], webrtcstaffoffer( 96 ) )
+    const { staff } = r
+    const guest = await staff.newuac( { "contact": "1000@dummy", "video": true } )
+    const staffvideo = staff.channels.video
+    expect( staffvideo ).to.be.an( "object" )
+    /* a secure leg: opened with a dtls block (remote() with one restarts
+       the handshake) */
+    const before = opened.get( staffvideo ).remote
+    expect( before.dtls ).to.be.an( "object" )
+    expect( before.codec ).to.equal( 96 )
+
+    const remotes = []
+    const originalremote = channelproto.remote
+    channelproto.remote = function( rem ) {
+      remotes.push( [ this, rem ] )
+      return originalremote.call( this, rem )
+    }
+    try {
+      reinviteinto( staff, webrtcstaffoffer( 96 ) )
+      expect( remotes ).to.have.lengthOf( 0 )
+
+      reinviteinto( staff, webrtcstaffoffer( 98 ) )
+      expect( remotes ).to.have.lengthOf( 1 )
+      expect( remotes[ 0 ][ 0 ] ).to.equal( staffvideo )
+      expect( remotes[ 0 ][ 1 ] ).to.deep.equal( {
+        "address": before.address, "port": before.port, "codec": 98, "codecs": { "vp8": 98 } } )
+    } finally {
+      // eslint-disable-next-line require-atomic-updates
+      channelproto.remote = originalremote
+    }
+
+    await teardown( staff, guest )
   } )
 } )

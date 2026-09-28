@@ -892,3 +892,219 @@ describe( "sdp video", function() {
     expect( untouched.sdp.media ).to.have.lengthOf( 1 )
   } )
 } )
+
+/*
+Our own video receive limits (VIDEO-WAITING-ROOM): what the projectrtp relay
+leg enforces, advertised so a sender that honours it stays under it (browsers
+honour the bitrate lines only). Distinct from
+stripreceivercaps above, which removes the OFFERER's caps from a mirrored
+answer: these are ours, added afterwards.
+*/
+describe( "sdp video limits", function() {
+
+  /* the callmanager defaults (lib/call.js videolimitdefaults) */
+  const defaults = { "bitrate": 2000000, "framerate": 30, "maxfs": 3600 }
+  const lowered = { "bitrate": 1000000, "framerate": 15, "maxfs": 1200 }
+
+  /** the text of each m-section of an SDP string, by m-line */
+  function sections( s ) {
+    return s.split( /\r\n(?=m=)/ ).slice( 1 )
+  }
+
+  /** the b= lines of a section */
+  function blines( section ) {
+    return section.split( "\r\n" ).filter( ( l ) => l.startsWith( "b=" ) )
+  }
+
+  /** our offer: pcma + h264 + vp8, video on 12002 */
+  function ouroffer( limits, h264cap = 0x1f ) {
+    return sdp.create()
+      .addcodecs( "pcma" )
+      .setaudioport( 12000 )
+      .addcodecs( "h264 vp8" )
+      .setvideoport( 12002 )
+      .caph264level( h264cap )
+      .setvideolimits( limits )
+  }
+
+  /** our answer to offer, accepting videocodec on 12002 */
+  function ouranswer( offer, videocodec, limits, h264cap = 0x1f ) {
+    return sdp.create()
+      .addcodecs( "pcma" )
+      .setaudioport( 12000 )
+      .mirrormedia( sdp.create( offer ), { "videoport": 12002, videocodec } )
+      .caph264level( h264cap )
+      .setvideolimits( limits )
+  }
+
+  it( "an offer carries b=AS then b=TIAS just under the cap, a=framerate and vp8 max-fs/max-fr on video - nothing on audio", async function() {
+
+    const out = ouroffer( defaults ).toString()
+    const [ audio, video ] = sections( out )
+
+    /* TIAS last: libwebrtc keeps the last b= line it reads */
+    expect( blines( video ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+    expect( video ).to.match( /^a=framerate:30$/m )
+    expect( video ).to.match( /^a=fmtp:96 max-fs=3600;max-fr=30$/m )
+    /* the defaults are exactly level 3.1: our h264 is unchanged */
+    expect( video ).to.match( /^a=fmtp:102 profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1$/m )
+
+    expect( blines( audio ) ).to.deep.equal( [] )
+    expect( audio ).to.not.include( "a=framerate" )
+    expect( audio ).to.not.include( "max-f" )
+    /* and no session-level b= */
+    expect( out.split( "m=audio" )[ 0 ] ).to.not.include( "b=" )
+  } )
+
+  it( "the advertised bitrate stays under the relay's cap, headers and retransmissions included", async function() {
+    for( const bitrate of [ 2000000, 1000000, 300000, 64000 ] ) {
+      const video = sections( ouroffer( { ...defaults, bitrate } ).toString() )[ 1 ]
+      const as = Number( video.match( /^b=AS:(\d+)$/m )[ 1 ] )
+      const tias = Number( video.match( /^b=TIAS:(\d+)$/m )[ 1 ] )
+      expect( tias ).to.equal( Math.floor( bitrate * 0.85 ) )
+      expect( as ).to.equal( Math.floor( bitrate * 0.9 / 1000 ) )
+      /* AS (overhead-inclusive) above TIAS (media only), both under the cap */
+      expect( as * 1000 ).to.be.above( tias )
+      expect( as * 1000 ).to.be.below( bitrate )
+    }
+  } )
+
+  it( "an answer carries our limits on the accepted video m-line, vp8 and h264 alike", async function() {
+
+    const vp8 = ouranswer( chromevideoffer, "vp8", defaults ).toString()
+    const [ audio, video ] = sections( vp8 )
+    expect( blines( video ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+    expect( video ).to.match( /^a=fmtp:96 max-fs=3600;max-fr=30$/m )
+    expect( video ).to.match( /^a=framerate:30$/m )
+    expect( blines( audio ) ).to.deep.equal( [] )
+
+    const h264 = sections( ouranswer( chromevideoffer, "h264", defaults ).toString() )[ 1 ]
+    expect( blines( h264 ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+    expect( h264 ).to.match( /^a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f$/m )
+  } )
+
+  it( "the offerer's own max-fs / max-fr / max-mbps are still stripped, then ours added", async function() {
+
+    const offer = chromevideoffer
+      .replace( "profile-level-id=42001f", "profile-level-id=42001f;max-fs=8160;max-mbps=244800;max-br=20000" )
+      .replace( "a=rtpmap:96 VP8/90000", "a=rtpmap:96 VP8/90000\r\na=fmtp:96 max-fs=12288;max-fr=60" )
+
+    const vp8 = sections( ouranswer( offer, "vp8", lowered ).toString() )[ 1 ]
+    expect( vp8.split( "\r\n" ).filter( ( l ) => l.startsWith( "a=fmtp:" ) ) )
+      .to.deep.equal( [ "a=fmtp:96 max-fs=1200;max-fr=15" ] )
+
+    /* h264: the offerer's receive caps gone, our level and caps in their place */
+    const h264 = sections( ouranswer( offer, "h264", lowered ).toString() )[ 1 ]
+    expect( h264.split( "\r\n" ).filter( ( l ) => l.startsWith( "a=fmtp:" ) ) ).to.deep.equal( [
+      "a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=420014;max-fs=1200;max-mbps=18000" ] )
+    expect( h264 ).to.not.match( /8160|244800|max-br/ )
+
+    /* with no limits of ours, the answer carries no caps at all */
+    const none = ouranswer( offer, "vp8", { "bitrate": 0, "framerate": 0, "maxfs": 0 } ).toString()
+    expect( none ).to.not.match( /max-f[sr]|^b=|a=framerate/m )
+    expect( none ).to.not.include( "a=fmtp:96" )
+  } )
+
+  it( "lowered limits lower everything: bandwidth, vp8 caps, framerate and the h264 level", async function() {
+
+    const video = sections( ouroffer( lowered ).toString() )[ 1 ]
+    expect( blines( video ) ).to.deep.equal( [ "b=AS:900", "b=TIAS:850000" ] )
+    expect( video ).to.match( /^a=framerate:15$/m )
+    expect( video ).to.match( /^a=fmtp:96 max-fs=1200;max-fr=15$/m )
+    /* 1200 MB at 15 fps: level 2 (396 MB, 11880 MB/s) is the highest level
+       within both; RFC 6184 max-fs/max-mbps raise it back to the limits */
+    expect( video ).to.match( /^a=fmtp:102 profile-level-id=42e014;packetization-mode=1;level-asymmetry-allowed=1;max-fs=1200;max-mbps=18000$/m )
+  } )
+
+  it( "h264 level: the highest level within maxfs and maxfs x framerate, bitrate playing no part", async function() {
+    const level = sdp.h264levelforlimits
+    expect( level( 3600, 30 ) ).to.equal( 0x1f ) /* 720p30 = 3.1 */
+    expect( level( 3600, 15 ) ).to.equal( 0x1e ) /* 54000 MB/s: 3.0 */
+    expect( level( 1200, 15 ) ).to.equal( 0x14 )
+    expect( level( 1620, 25 ) ).to.equal( 0x1e ) /* 625 lines at 25: exactly 3.0 */
+    expect( level( 396, 30 ) ).to.equal( 0x14 ) /* CIF at 30: level 2 (1.3 and 2 share limits) */
+    expect( level( 99, 15 ) ).to.equal( 0x0a ) /* level 1, never 1b */
+    expect( level( 50, 15 ) ).to.equal( 0x0a ) /* nothing smaller than level 1 */
+    expect( level( 3600, 0 ) ).to.equal( 0x1f ) /* framerate unlimited: frame size alone */
+    expect( level( 0, 30 ) ).to.be.undefined /* frame size unlimited: no level cap */
+
+    /* 3.0 lowered from 3.1 with frame size to spare: max-fs/max-mbps restore it */
+    const video = sections( ouroffer( { ...defaults, "framerate": 15 } ).toString() )[ 1 ]
+    expect( video ).to.match( /^a=fmtp:102 profile-level-id=42e01e;packetization-mode=1;level-asymmetry-allowed=1;max-fs=3600;max-mbps=54000$/m )
+  } )
+
+  it( "h264: limits never raise a level, nor max-fs/max-mbps past what the m-line declared before", async function() {
+
+    /* the paired leg decodes only 2.1 (792 MB, 19800 MB/s): caph264level
+       has already lowered us there, and our limits must not undo it */
+    const video = sections( ouroffer( lowered, 0x15 ).toString() )[ 1 ]
+    expect( video ).to.match( /^a=fmtp:102 profile-level-id=42e014;packetization-mode=1;level-asymmetry-allowed=1;max-fs=792;max-mbps=18000$/m )
+
+    /* already at or under the limits' level: left alone */
+    const low = sections( ouroffer( lowered, 0x0d ).toString() )[ 1 ]
+    expect( low ).to.match( /^a=fmtp:102 profile-level-id=42e00d;packetization-mode=1;level-asymmetry-allowed=1$/m )
+
+    /* generous limits do not lift our registry's 3.1 */
+    const big = sections( ouroffer( { "bitrate": 8000000, "framerate": 60, "maxfs": 8160 } ).toString() )[ 1 ]
+    expect( big ).to.match( /^a=fmtp:102 profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1$/m )
+    expect( big ).to.match( /^a=fmtp:96 max-fs=8160;max-fr=60$/m )
+  } )
+
+  it( "a re-offer and a re-answer carry the limits again; a hold keeps them", async function() {
+
+    const first = ouroffer( defaults )
+    first.toString()
+    const reoffer = ouroffer( lowered ).preservemlines( first ).toString()
+    const video = sections( reoffer )[ 1 ]
+    expect( blines( video ) ).to.deep.equal( [ "b=AS:900", "b=TIAS:850000" ] )
+    expect( video ).to.match( /^a=fmtp:96 max-fs=1200;max-fr=15$/m )
+
+    /* a re-answer rebuilds the video m-line from the new offer */
+    const answer = ouranswer( chromevideoffer, "vp8", defaults )
+    answer.mirrormedia( sdp.create( chromevideoffer ), { "videoport": 12002, "videocodec": "vp8" } )
+      .caph264level( 0x1f )
+      .setvideolimits( defaults )
+      .setvideolimits( defaults ) /* idempotent */
+    const reanswer = sections( answer.toString() )[ 1 ]
+    expect( blines( reanswer ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+    expect( reanswer.split( "\r\n" ).filter( ( l ) => l.startsWith( "a=fmtp:" ) ) )
+      .to.deep.equal( [ "a=fmtp:96 max-fs=3600;max-fr=30" ] )
+    expect( reanswer.match( /a=framerate/g ) ).to.have.lengthOf( 1 )
+
+    /* hold only changes the direction */
+    const held = ouroffer( defaults ).setvideodirection( "inactive" ).toString()
+    expect( blines( sections( held )[ 1 ] ) ).to.deep.equal( [ "b=AS:1800", "b=TIAS:1700000" ] )
+  } )
+
+  it( "a maxfs under 99 is raised to 99 (H.264 level 1), so vp8 and h264 both declare exactly what the relay enforces; fractions are rounded down", async function() {
+
+    const video = sections( ouroffer( { "bitrate": 300000, "framerate": 15.9, "maxfs": 40 } ).toString() )[ 1 ]
+    expect( video ).to.match( /^a=fmtp:96 max-fs=99;max-fr=15$/m )
+    expect( video ).to.match( /^a=framerate:15$/m )
+    /* level 1 is 99 MB at 1485 MB/s = 99 x 15: exactly the limits, nothing to raise */
+    expect( video ).to.match( /^a=fmtp:102 profile-level-id=42e00a;packetization-mode=1;level-asymmetry-allowed=1$/m )
+
+    /* at 30 fps level 1's MaxMBPS is short, so max-mbps raises it - but
+       max-fs stays level 1's 99, never above it */
+    const thirty = sections( ouroffer( { "bitrate": 300000, "framerate": 30, "maxfs": 98 } ).toString() )[ 1 ]
+    expect( thirty ).to.match( /^a=fmtp:96 max-fs=99;max-fr=30$/m )
+    expect( thirty ).to.match( /^a=fmtp:102 profile-level-id=42e00a;packetization-mode=1;level-asymmetry-allowed=1;max-mbps=2970$/m )
+
+    /* 99 and up are untouched; 0 is still unlimited */
+    expect( sections( ouroffer( { ...defaults, "maxfs": 99 } ).toString() )[ 1 ] ).to.match( /^a=fmtp:96 max-fs=99;max-fr=30$/m )
+    expect( sections( ouroffer( { ...defaults, "maxfs": 0 } ).toString() )[ 1 ] ).to.match( /^a=fmtp:96 max-fr=30$/m )
+  } )
+
+  it( "a rejected (port 0) video m-line carries no limits", async function() {
+    const out = sdp.create()
+      .addcodecs( "pcma" )
+      .setaudioport( 12000 )
+      .mirrormedia( sdp.create( chromevideoffer ), {} )
+      .setvideolimits( defaults )
+      .toString()
+    const video = sections( out )[ 1 ]
+    expect( video ).to.match( /^m=video 0 / )
+    expect( blines( video ) ).to.deep.equal( [] )
+    expect( video ).to.not.match( /framerate|max-f/ )
+  } )
+} )
