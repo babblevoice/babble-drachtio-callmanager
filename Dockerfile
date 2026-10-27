@@ -12,9 +12,8 @@
 #   docker run --rm callmanager:test npx mocha --recursive --check-leaks --grep '486'
 
 # --- Stage 1: install node deps (incl. dev deps for the test run) -----------
-FROM alpine:3.22 AS deps
+FROM node:26-alpine3.24 AS deps
 WORKDIR /usr/src/callmanager/
-RUN apk add --no-cache nodejs npm
 COPY package.json package-lock.json ./
 # --ignore-scripts: projectrtp 3.x has no install hook; we build the Rust
 # addon ourselves in the next stage.
@@ -39,9 +38,9 @@ ENV RUSTFLAGS="-C target-feature=-crt-static"
 RUN cargo build --release
 
 # --- Stage 3: test image ----------------------------------------------------
-FROM alpine:3.22 AS test
+FROM node:26-alpine3.24 AS test
 WORKDIR /usr/src/callmanager/
-RUN apk add --no-cache nodejs npm spandsp3 libstdc++ libc6-compat ca-certificates
+RUN apk add --no-cache spandsp3 libstdc++ libc6-compat ca-certificates
 COPY --from=deps /usr/src/callmanager/node_modules ./node_modules
 COPY --from=rust-builder /usr/local/lib/libilbc.so* /usr/lib/
 COPY --from=rust-builder /src/rust/target/release/libprojectrtp.so \
