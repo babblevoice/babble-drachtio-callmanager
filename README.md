@@ -120,6 +120,52 @@ cm.on( "call", async ( c ) => {
 } )
 ```
 
+The call events are: `call.new`, `call.ringing`, `call.early`, `call.answered`, `call.updated`, `call.mix`, `call.auth.start`, `call.authed`, `call.authed.failed`, `call.hold`, `call.unhold`, `call.pick`, `call.destroyed`, `call.reporting`, `call.video.nomedia` and `call.video.media`.
+
+### Video no-media monitoring
+
+While a call is established with a video relay leg (projectrtp relay mode), its `livestats()` is polled for authenticated inbound video (`in.accepted + in.rtcp`). If that has not moved for `nomedia` mS the call emits `call.video.nomedia`; when video moves again it emits `call.video.media`. Both go to the call's emitter and the global one, with the call as the argument. Nothing is raised while the call is on hold, and a node without `livestats()` is never polled. An older relay build that reports only `in.count` is judged on that.
+
+`call.videomonitor` holds the latest stats (`stats`, sampled at `at`), the current state (`nomedia`) and a `history` of the events. The timing defaults to `{ interval: 2000, nomedia: 8000 }`. Override it with the `videomonitor` option, globally or per call. Keep `nomedia` under projectrtp's 20S relay idle timeout, which closes a dead leg.
+
+### Video limits
+
+The `videolimits` option (globally or per call) says how much video a relay leg lets its far end send. It is the one source of these numbers for two jobs: every video relay leg is opened with them as projectrtp's `relaylimits` - projectrtp enforces them and drops what exceeds them - and every video m-line we write - offers, answers, re-offers, re-answers and holds, to staff and guest alike - advertises them.
+
+```javascript
+{
+  "videolimits": {
+    "bitrate": 2000000,  /* bits/s */
+    "burst": 0,          /* bytes - 0 = one second of bitrate (250000 here) */
+    "packetrate": 1000,  /* packets/s */
+    "framerate": 30,     /* frames/s */
+    "maxfs": 3600        /* frame size in 16x16 macroblocks - 3600 = 1280x720, either orientation */
+  }
+}
+```
+
+The global and per-call options are merged field by field over these defaults (defaults, then global, then per call): a call that sets only `framerate` keeps the global `bitrate`. A field that is absent, negative, not a number, or a fraction that rounds down to 0 (`0.5`) falls through to the layer beneath. An explicit `0` means unlimited (and is then not advertised) for `bitrate`, `packetrate`, `framerate` and `maxfs`. `burst` is different: `0` (or absent) is one second of the final `bitrate`, which is what projectrtp enforces for 0, and we pass the resolved number (0 only when `bitrate` is unlimited). A `maxfs` of 1-98 is raised to 99 (QCIF, H.264 level 1's MaxFS): no H.264 level declares a smaller frame, so a smaller limit could not be advertised to an H.264 sender while the relay enforced it - the relay and the SDP both use 99.
+
+What the SDP says, per video m-line:
+
+- `b=AS` at 90% and `b=TIAS` at 85% of `bitrate` (the defaults give `b=AS:1800` and `b=TIAS:1700000`). TIAS is the media bitrate a browser feeds its encoder; the 15% left under the relay's cap covers RTP/SRTP headers, NACK retransmissions and encoder overshoot. AS counts headers, so it sits 5 points higher, for endpoints that only read AS. TIAS is written last, as libwebrtc keeps the last `b=` line.
+- `a=framerate:<framerate>`.
+- VP8: `a=fmtp:<pt> max-fs=<maxfs>;max-fr=<framerate>` (RFC 7741).
+- H.264: the level is lowered to the highest one whose MaxFS and MaxMBPS fit `maxfs` and `maxfs * framerate` (RFC 6184 `max-fs`/`max-mbps` may only raise a receiver's level, never lower it), then `max-fs`/`max-mbps` raise it back to the limits. The defaults are exactly level 3.1, our registry's level, so they change nothing; raising the limits never lifts H.264 above 3.1, nor above the level the other leg decodes.
+
+Only the bitrate lines reliably limit a browser: libwebrtc (Chrome, Safari) and Firefox cap their send bitrate to `b=TIAS`/`b=AS`. The resolution and frame-rate lines are advisory - valid SDP that some SIP endpoints honour, but libwebrtc ignores VP8 `max-fs`/`max-fr` when sending and never parses `a=framerate`. The relay is the enforcement: a browser client must cap its own capture/encoder (resolution and frame rate) to stay under the limits, or the relay drops frames (over `framerate`, with 1.5x tolerance) or the whole stream until a keyframe that fits (over `maxfs`).
+
+An incoming re-offer that moves the video payload type re-points the relay leg's codec at the new one (without restarting DTLS), so the stream is not dropped as `ptdropped`.
+
+A mirrored answer still drops the offerer's own receive capabilities (its `max-fs`, `max-fr`, `max-mbps` ...); ours are added after.
+
+### Video codec negotiation and known limits
+
+The relay forwards video untouched - it never transcodes - so both legs of a bridged call must carry the same codec. When staff call a guest, the guest's offer lists only the video codecs staff offered, and whatever the guest answers is pinned on both legs; staff's answer is then mirrored with only that codec.
+
+- **Queues and ring groups.** When a call is adopted and mixed after both legs have already negotiated independently, nothing can pin them to one codec any more. If they chose the same codec, video is bridged. If not (one VP8, one H.264), the call carries audio only rather than relaying undecodable video. Video through a queue therefore depends on both endpoints preferring the same codec.
+- **Extra m-lines.** An offer with an m-line we do not bridge (a SIP phone offering video on a call without `video: true`, T.38, BFCP ...) is answered with that m-line at port 0 and `a=inactive`, as RFC 3264 requires, where older releases left it out of the answer. An endpoint that relied on the omission may behave differently.
+
 # Examples
 
 Authorise the call, sending ringing then answer. Once answered, echo RTP data back to the client.

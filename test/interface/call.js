@@ -1307,12 +1307,17 @@ describe( "call object", function() {
       "transcribe": true
     } )
 
-    setTimeout( () => {
-      /* hangup from client */
-      c._onhangup( "wire" )
-    }, 50 )
+    /* hangup from client. Keep hold of the hangup so we can wait for it: the
+       record "finished" event above is injected at 10mS, BEFORE this 50mS
+       hangup, so without awaiting it we tore the mock node down first and the
+       hangup's channel close was written into a dead socket - leaving a 60S
+       close timer holding the mocha process open after the suite finished. */
+    const hungup = new Promise( ( resolve ) => {
+      setTimeout( () => resolve( c._onhangup( "wire" ) ), 50 )
+    } )
 
     const recordfinishev = await c.waitforanyevent( { "action": "record", "event": /finished.*|\*/ }, 10000 )
+    await hungup
 
     connection.destroy()
     await rtpserver.destroy()
