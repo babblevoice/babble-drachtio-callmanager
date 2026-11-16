@@ -808,6 +808,126 @@ describe( "call object", function() {
     expect( eventhappened ).to.be.true
   } )
 
+  it( "uas - a caller who hangs up before we are listening to the dialog is still hung up", async function() {
+
+    /* srf answers a BYE that arrives in the same read as the confirmation of
+       our 200 OK before the code after "await createUAS" runs - so the dialog
+       we are handed has already gone and its "destroy" has already fired */
+    const srfscenario = new srf.srfscenario()
+    srfscenario.oncreateUAS( () => {
+      const d = new srf.dialog()
+      d.connected = false
+      return d
+    } )
+
+    const events = []
+    srfscenario.options.em.on( "call.answered", () => events.push( "answered" ) )
+
+    const c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    const destroyed = new Promise( ( resolve ) => {
+      c.on( "call.destroyed", () => { events.push( "destroyed" ); resolve() } )
+    } )
+
+    await c.answer()
+    await destroyed
+
+    expect( events ).to.deep.equal( [ "answered", "destroyed" ] )
+    expect( c.hangup_cause.src ).to.equal( "wire" )
+    expect( c.hangup_cause.reason ).to.equal( "NORMAL_CLEARING" )
+  } )
+
+  it( "uas - a caller who hangs up as the callee answers takes the callee leg down too", async function() {
+
+    /* the leak this was found through: caller rings an extension, callee
+       answers, we answer the caller - and the caller's BYE comes back in the
+       same read. The callee leg must not be left up with nobody on it */
+    const srfscenario = new srf.srfscenario()
+    srfscenario.oncreateUAS( () => {
+      const d = new srf.dialog()
+      d.connected = false
+      return d
+    } )
+
+    const c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    const callerdestroyed = new Promise( ( resolve ) => c.on( "call.destroyed", resolve ) )
+
+    const child = await c.newuac( { "contact": "1000@dummy" } )
+    const childdestroyed = new Promise( ( resolve ) => {
+      if( child.destroyed ) return resolve()
+      child.on( "call.destroyed", resolve )
+    } )
+
+    await Promise.all( [ callerdestroyed, childdestroyed ] )
+
+    expect( c.hangup_cause.src ).to.equal( "wire" )
+    expect( c.destroyed ).to.be.true
+    expect( child.destroyed ).to.be.true
+  } )
+
+  it( "uac - a callee who answers and hangs up before we are listening is treated as gone, and the caller is not answered", async function() {
+
+    const srfscenario = new srf.srfscenario()
+
+    let uascreated = false
+    srfscenario.oncreateUAS( () => {
+      uascreated = true
+      return new srf.dialog()
+    } )
+
+    srfscenario.oncreateUAC( () => {
+      const d = new srf.dialog( new srf.req() )
+      d.connected = false
+      return d
+    } )
+
+    const c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    let failed = false
+    const child = await c.newuac( { "contact": "1000@dummy" }, { "fail": () => { failed = true } } )
+
+    expect( child.destroyedcancelledorhungup ).to.be.ok
+    expect( child.hangup_cause.src ).to.equal( "wire" )
+    expect( failed ).to.be.true
+    expect( uascreated ).to.be.false
+    expect( c.established ).to.be.false
+
+    await c.hangup()
+  } )
+
+  it( "uas - a dialog that is still connected is left alone", async function() {
+
+    const srfscenario = new srf.srfscenario()
+    srfscenario.oncreateUAS( () => {
+      const d = new srf.dialog()
+      d.connected = true
+      return d
+    } )
+
+    const c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    await c.answer()
+    await new Promise( ( resolve ) => setTimeout( resolve, 20 ) )
+
+    expect( c.destroyed ).to.be.false
+    expect( c.established ).to.be.true
+
+    await c.hangup()
+  } )
+
   it( "uas.newuac - answered and destroyed event", async function() {
 
     const srfscenario = new srf.srfscenario()
