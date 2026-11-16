@@ -838,6 +838,68 @@ describe( "call object", function() {
     expect( eventhappened ).to.be.false
   } )
 
+  it( "uas.answer - hung up while our 200 is being sent, the dialog is ended", async function() {
+
+    const srfscenario = new srf.srfscenario()
+
+    const d = new srf.dialog()
+    let destroycount = 0
+    const destroy = d.destroy.bind( d )
+    d.destroy = ( cb ) => {
+      destroycount++
+      return destroy( cb )
+    }
+
+    let answered = false
+    srfscenario.options.em.on( "call.answered", () => { answered = true } )
+
+    const c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    /* e.g. the other leg hung up in the same read from drachtio as the 200 went */
+    srfscenario.oncreateUAS( async () => {
+      await c.hangup()
+      return d
+    } )
+
+    await c.answer()
+
+    expect( destroycount ).to.equal( 1 )
+    expect( answered ).to.be.false
+    expect( c.established ).to.be.false
+    expect( await callstore.stats() ).to.deep.include( {
+      "storebycallid": 0,
+      "storebyuuid": 0,
+      "storebyentity": 0
+    } )
+  } )
+
+  it( "uas.answer - a BYE handled before createUAS resolves hangs the call up", async function() {
+
+    const srfscenario = new srf.srfscenario()
+
+    srfscenario.oncreateUAS( async () => {
+      const d = new srf.dialog()
+      /* drachtio-srf has already emitted destroy, with nobody listening */
+      d.connected = false
+      return d
+    } )
+
+    const c = await new Promise( ( resolve ) => {
+      srfscenario.oncall( async ( call ) => { resolve( call ) } )
+      srfscenario.inbound()
+    } )
+
+    await c.answer()
+    await c.waitforhangup()
+
+    expect( c.hangup_cause.src ).to.equal( "wire" )
+    expect( c.hangup_cause.reason ).to.equal( "NORMAL_CLEARING" )
+    expect( c.state.cleaned ).to.be.true
+  } )
+
   it( "uas.newuac - authed event", async function() {
 
     const options = {
